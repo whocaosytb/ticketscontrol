@@ -173,7 +173,7 @@ export const TicketList: React.FC = () => {
                 <SortableHeader label="Previsão" sortKey="previsao" currentSort={sortConfig} onSort={handleSort} />
                 <SortableHeader label="Responsável" sortKey="responsavel" currentSort={sortConfig} onSort={handleSort} />
                 <SortableHeader label="Fechamento" sortKey="data_fechamento" currentSort={sortConfig} onSort={handleSort} />
-                <th className="px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Ações</th>
+                <th className="px-3 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider text-center">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -187,25 +187,27 @@ export const TicketList: React.FC = () => {
                   <td className="px-3 py-2">
                     <StatusBadge status={c.status} />
                   </td>
-                  <td className="px-3 py-2 text-xs text-slate-600 dark:text-slate-400">{format(new Date(c.data_abertura), 'dd/MM/yy HH:mm')}</td>
+                  <td className="px-3 py-2 text-xs text-slate-600 dark:text-slate-400 whitespace-nowrap">{format(new Date(c.data_abertura), 'dd/MM/yy HH:mm')}</td>
                   <td className="px-3 py-2 text-xs font-medium text-slate-900 dark:text-white max-w-[150px] truncate">{c.titulo}</td>
                   <td className="px-3 py-2 text-xs text-slate-600 dark:text-slate-400 max-w-[200px] truncate">{c.descricao || '-'}</td>
-                  <td className="px-3 py-2 text-xs text-slate-600 dark:text-slate-400">{c.usuario}</td>
-                  <td className="px-3 py-2 text-xs text-slate-600 dark:text-slate-400">{(c as any).setores?.nome || '-'}</td>
-                  <td className="px-3 py-2 text-xs text-slate-600 dark:text-slate-400">{c.previsao ? format(new Date(c.previsao), 'dd/MM/yy') : '-'}</td>
-                  <td className="px-3 py-2 text-xs text-slate-600 dark:text-slate-400">{c.responsavel}</td>
-                  <td className="px-3 py-2 text-xs text-slate-600 dark:text-slate-400">{c.data_fechamento ? format(new Date(c.data_fechamento), 'dd/MM/yy') : '-'}</td>
+                  <td className="px-3 py-2 text-xs text-slate-600 dark:text-slate-400 whitespace-nowrap">{c.usuario}</td>
+                  <td className="px-3 py-2 text-xs text-slate-600 dark:text-slate-400 whitespace-nowrap">{(c as any).setores?.nome || '-'}</td>
+                  <td className="px-3 py-2 text-xs text-slate-600 dark:text-slate-400 whitespace-nowrap">{c.previsao ? format(new Date(c.previsao), 'dd/MM/yy') : '-'}</td>
+                  <td className="px-3 py-2 text-xs text-slate-600 dark:text-slate-400 whitespace-nowrap">{c.responsavel}</td>
+                  <td className="px-3 py-2 text-xs text-slate-600 dark:text-slate-400 whitespace-nowrap">{c.data_fechamento ? format(new Date(c.data_fechamento), 'dd/MM/yy') : '-'}</td>
                   <td className="px-3 py-2 text-xs" onClick={(e) => e.stopPropagation()}>
-                    <div className="flex gap-2">
+                    <div className="flex gap-3 justify-center">
                       <button 
                         onClick={() => setSelectedTicket(c)}
                         className="p-1.5 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-colors"
+                        title="Editar"
                       >
                         <Edit size={16} />
                       </button>
                       <button 
                         onClick={() => handleDelete(c.uuid, c.status)}
                         className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-md transition-colors"
+                        title="Excluir"
                       >
                         <Trash2 size={16} />
                       </button>

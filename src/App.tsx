@@ -60,7 +60,7 @@ export default function App() {
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto relative">
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-[98%] mx-auto">
           {renderContent()}
         </div>
       </main>
