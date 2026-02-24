@@ -16,10 +16,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
   return (
     <div className="w-full md:w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col h-full">
       <div className="p-6 flex items-center gap-3">
-        <div className="bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-500/30">
+        <div className="bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-500/30 shrink-0">
           <ShieldCheck className="text-white" size={24} />
         </div>
-        <span className="text-xl font-black tracking-tighter text-slate-900 dark:text-white uppercase">Tickets<span className="text-blue-600">Manager</span></span>
+        <div className="flex flex-col leading-none">
+          <span className="text-lg font-black tracking-tighter text-slate-900 dark:text-white uppercase">Tickets</span>
+          <span className="text-lg font-black tracking-tighter text-blue-600 uppercase">Manager</span>
+        </div>
       </div>
 
       <nav className="flex-1 px-4 py-4 space-y-2">
