@@ -349,7 +349,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({ ticket, isOpen, onClos
                   <div className="max-w-[85%] bg-white dark:bg-slate-800 p-3 rounded-2xl rounded-tl-none border border-slate-200 dark:border-slate-700 shadow-sm">
                     <div className="flex justify-between items-center gap-4 mb-1">
                       <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase">{obs.autor}</span>
-                      <span className="text-[10px] text-slate-400">{format(new Date(obs.data_criacao), 'HH:mm')}</span>
+                      <span className="text-[10px] text-slate-400">{format(new Date(obs.data_criacao), 'dd/MM/yy HH:mm')}</span>
                     </div>
                     <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap">{obs.mensagem}</p>
                   </div>
