@@ -39,6 +39,14 @@ export const TicketModal: React.FC<TicketModalProps> = ({ ticket, isOpen, onClos
   }, [ticket]);
 
   useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [onClose]);
+
+  useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [observacoes]);
 

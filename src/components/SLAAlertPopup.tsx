@@ -16,6 +16,16 @@ export const SLAAlertPopup: React.FC = () => {
     }
   }, []);
 
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsOpen(false);
+    };
+    if (isOpen) {
+      window.addEventListener('keydown', handleEsc);
+    }
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [isOpen]);
+
   const fetchVencidos = async () => {
     const now = new Date();
     const { data } = await supabase
