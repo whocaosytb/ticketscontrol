@@ -37,7 +37,7 @@ export const SLAAlertPopup: React.FC = () => {
       const filtered = data.filter(c => {
         const slaDate = new Date(c.sla_atual);
         const hoursLeft = differenceInHours(slaDate, now);
-        return hoursLeft <= 72; // Vencidos ou vencendo em 72h
+        return hoursLeft <= 30; // Vencidos ou vencendo em 30h
       });
 
       if (filtered.length > 0) {
@@ -56,7 +56,7 @@ export const SLAAlertPopup: React.FC = () => {
         <div className="p-6 bg-red-600 text-white flex justify-between items-center">
           <div className="flex items-center gap-3">
             <AlertTriangle size={24} />
-            <h2 className="text-xl font-bold">Alerta de SLA</h2>
+            <h2 className="text-xl font-bold">Chamados requerentes de atenção</h2>
           </div>
           <button onClick={() => setIsOpen(false)} className="p-1 hover:bg-white/20 rounded-full transition-colors">
             <X size={20} />
@@ -65,7 +65,7 @@ export const SLAAlertPopup: React.FC = () => {
         
         <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
           <p className="text-sm text-slate-600 dark:text-slate-400">
-            Os seguintes chamados estão vencidos ou vencem em menos de 72h:
+            Os seguintes chamados estão vencidos ou vencem em menos de 30h:
           </p>
           
           <div className="space-y-3">

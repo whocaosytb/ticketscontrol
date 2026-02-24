@@ -167,6 +167,7 @@ export const TicketList: React.FC = () => {
                 <SortableHeader label="Status" sortKey="status" currentSort={sortConfig} onSort={handleSort} />
                 <SortableHeader label="Data Abertura" sortKey="data_abertura" currentSort={sortConfig} onSort={handleSort} />
                 <SortableHeader label="Título" sortKey="titulo" currentSort={sortConfig} onSort={handleSort} />
+                <SortableHeader label="Descrição" sortKey="descricao" currentSort={sortConfig} onSort={handleSort} />
                 <SortableHeader label="Usuário" sortKey="usuario" currentSort={sortConfig} onSort={handleSort} />
                 <SortableHeader label="Setor" sortKey="setor_id" currentSort={sortConfig} onSort={handleSort} />
                 <SortableHeader label="Previsão" sortKey="previsao" currentSort={sortConfig} onSort={handleSort} />
@@ -182,18 +183,19 @@ export const TicketList: React.FC = () => {
                   className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer"
                   onClick={() => setSelectedTicket(c)}
                 >
-                  <td className="px-4 py-4 text-sm font-mono text-slate-600 dark:text-slate-400">{formatVisualId(c.id_visual)}</td>
-                  <td className="px-4 py-4">
+                  <td className="px-3 py-2 text-xs font-mono text-slate-600 dark:text-slate-400">{formatVisualId(c.id_visual)}</td>
+                  <td className="px-3 py-2">
                     <StatusBadge status={c.status} />
                   </td>
-                  <td className="px-4 py-4 text-sm text-slate-600 dark:text-slate-400">{format(new Date(c.data_abertura), 'dd/MM/yy HH:mm')}</td>
-                  <td className="px-4 py-4 text-sm font-medium text-slate-900 dark:text-white max-w-[200px] truncate">{c.titulo}</td>
-                  <td className="px-4 py-4 text-sm text-slate-600 dark:text-slate-400">{c.usuario}</td>
-                  <td className="px-4 py-4 text-sm text-slate-600 dark:text-slate-400">{(c as any).setores?.nome || '-'}</td>
-                  <td className="px-4 py-4 text-sm text-slate-600 dark:text-slate-400">{c.previsao ? format(new Date(c.previsao), 'dd/MM/yy') : '-'}</td>
-                  <td className="px-4 py-4 text-sm text-slate-600 dark:text-slate-400">{c.responsavel}</td>
-                  <td className="px-4 py-4 text-sm text-slate-600 dark:text-slate-400">{c.data_fechamento ? format(new Date(c.data_fechamento), 'dd/MM/yy') : '-'}</td>
-                  <td className="px-4 py-4 text-sm" onClick={(e) => e.stopPropagation()}>
+                  <td className="px-3 py-2 text-xs text-slate-600 dark:text-slate-400">{format(new Date(c.data_abertura), 'dd/MM/yy HH:mm')}</td>
+                  <td className="px-3 py-2 text-xs font-medium text-slate-900 dark:text-white max-w-[150px] truncate">{c.titulo}</td>
+                  <td className="px-3 py-2 text-xs text-slate-600 dark:text-slate-400 max-w-[200px] truncate">{c.descricao || '-'}</td>
+                  <td className="px-3 py-2 text-xs text-slate-600 dark:text-slate-400">{c.usuario}</td>
+                  <td className="px-3 py-2 text-xs text-slate-600 dark:text-slate-400">{(c as any).setores?.nome || '-'}</td>
+                  <td className="px-3 py-2 text-xs text-slate-600 dark:text-slate-400">{c.previsao ? format(new Date(c.previsao), 'dd/MM/yy') : '-'}</td>
+                  <td className="px-3 py-2 text-xs text-slate-600 dark:text-slate-400">{c.responsavel}</td>
+                  <td className="px-3 py-2 text-xs text-slate-600 dark:text-slate-400">{c.data_fechamento ? format(new Date(c.data_fechamento), 'dd/MM/yy') : '-'}</td>
+                  <td className="px-3 py-2 text-xs" onClick={(e) => e.stopPropagation()}>
                     <div className="flex gap-2">
                       <button 
                         onClick={() => setSelectedTicket(c)}
