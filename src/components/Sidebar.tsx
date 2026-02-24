@@ -19,7 +19,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
         <div className="bg-blue-600 p-2 rounded-xl shadow-lg shadow-blue-500/30">
           <ShieldCheck className="text-white" size={24} />
         </div>
-        <span className="text-xl font-black tracking-tighter text-slate-900 dark:text-white uppercase">HelpDesk<span className="text-blue-600">Pro</span></span>
+        <span className="text-xl font-black tracking-tighter text-slate-900 dark:text-white uppercase">Tickets<span className="text-blue-600">Manager</span></span>
       </div>
 
       <nav className="flex-1 px-4 py-4 space-y-2">
