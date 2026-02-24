@@ -93,8 +93,11 @@ export const TicketModal: React.FC<TicketModalProps> = ({ ticket, isOpen, onClos
       slaAtual = previsao;
     }
 
+    // Clean payload to remove joined objects and auto-generated fields
+    const { setores: _, id_visual: __, uuid: ___, created_at: ____, ...cleanPayload } = formData;
+
     const payload: any = {
-      ...formData,
+      ...cleanPayload,
       sla_inicial: slaInicial.toISOString(),
       sla_atual: slaAtual.toISOString(),
       previsao: previsao ? previsao.toISOString() : null,
