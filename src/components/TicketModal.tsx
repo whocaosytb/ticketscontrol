@@ -270,7 +270,16 @@ export const TicketModal: React.FC<TicketModalProps> = ({ ticket, isOpen, onClos
                     type="date" 
                     className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg outline-none dark:text-white disabled:opacity-50"
                     value={formData.previsao ? format(new Date(formData.previsao), 'yyyy-MM-dd') : ''}
-                    onChange={(e) => setFormData({ ...formData, previsao: e.target.value ? new Date(e.target.value).toISOString() : null })}
+                    onChange={(e) => {
+                      if (!e.target.value) {
+                        setFormData({ ...formData, previsao: null });
+                        return;
+                      }
+                      // Split the date and create a local date at noon to avoid timezone shifts
+                      const [year, month, day] = e.target.value.split('-').map(Number);
+                      const date = new Date(year, month - 1, day, 12, 0, 0);
+                      setFormData({ ...formData, previsao: date.toISOString() });
+                    }}
                   />
                 </div>
               </div>
