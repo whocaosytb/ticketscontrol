@@ -1,4 +1,4 @@
-export type Status = 'Aberto' | 'Aguardando' | 'Resolvido' | 'Cancelado';
+export type Status = 'Aberto' | 'Aguardando' | 'Resolvido' | 'Cancelado' | 'Fechado';
 export type TipoChamado = 'Incidente' | 'Solicitação' | 'Melhoria';
 export type Abrangencia = 'Empresa' | 'Setor' | 'Colaborador';
 export type Prioridade = 'Alta' | 'Média' | 'Baixa' | 'Melhoria';

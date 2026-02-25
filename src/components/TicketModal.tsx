@@ -111,8 +111,8 @@ export const TicketModal: React.FC<TicketModalProps> = ({ ticket, isOpen, onClos
       previsao: previsao ? previsao.toISOString() : null,
     };
 
-    if (formData.status === 'Resolvido' || formData.status === 'Cancelado') {
-      if (!ticket || (ticket.status !== 'Resolvido' && ticket.status !== 'Cancelado')) {
+    if (formData.status === 'Resolvido' || formData.status === 'Cancelado' || formData.status === 'Fechado') {
+      if (!ticket || (ticket.status !== 'Resolvido' && ticket.status !== 'Cancelado' && ticket.status !== 'Fechado')) {
         if (!confirm(`Tem certeza que deseja marcar como ${formData.status}? Esta ação não pode ser desfeita.`)) {
           setLoading(false);
           return;
@@ -159,7 +159,8 @@ export const TicketModal: React.FC<TicketModalProps> = ({ ticket, isOpen, onClos
     setNewObs('');
   };
 
-  const isClosed = ticket?.status === 'Resolvido' || ticket?.status === 'Cancelado';
+  const isClosed = ticket?.status === 'Cancelado' || ticket?.status === 'Fechado';
+  const isResolvido = ticket?.status === 'Resolvido';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
@@ -265,10 +266,23 @@ export const TicketModal: React.FC<TicketModalProps> = ({ ticket, isOpen, onClos
                     value={formData.status}
                     onChange={(e) => setFormData({ ...formData, status: e.target.value as Status })}
                   >
-                    <option value="Aberto">Aberto</option>
-                    <option value="Aguardando">Aguardando</option>
-                    <option value="Resolvido">Resolvido</option>
-                    <option value="Cancelado">Cancelado</option>
+                    {!isResolvido && (
+                      <>
+                        <option value="Aberto">Aberto</option>
+                        <option value="Aguardando">Aguardando</option>
+                        <option value="Resolvido">Resolvido</option>
+                        <option value="Cancelado">Cancelado</option>
+                      </>
+                    )}
+                    {isResolvido && (
+                      <>
+                        <option value="Resolvido">Resolvido</option>
+                        <option value="Fechado">Fechado</option>
+                      </>
+                    )}
+                    {isClosed && (
+                      <option value={ticket?.status}>{ticket?.status}</option>
+                    )}
                   </select>
                 </div>
                 <div className="space-y-1">

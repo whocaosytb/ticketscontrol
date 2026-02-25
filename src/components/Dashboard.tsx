@@ -13,7 +13,7 @@ const COLORS = ['#3b82f6', '#f59e0b', '#10b981', '#ef4444'];
 
 export const Dashboard: React.FC = () => {
   const [chamados, setChamados] = useState<Chamado[]>([]);
-  const [period, setPeriod] = useState<'day' | 'week' | 'month'>('day');
+  const [dateRange, setDateRange] = useState<{ start: string; end: string }>({ start: '', end: '' });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -31,23 +31,31 @@ export const Dashboard: React.FC = () => {
 
   const filteredChamados = chamados.filter(c => c.status !== 'Cancelado');
 
-  const getPeriodInterval = () => {
-    const now = new Date();
-    if (period === 'day') return { start: startOfDay(now), end: endOfDay(now) };
-    if (period === 'week') return { start: startOfWeek(now), end: endOfWeek(now) };
-    return { start: startOfMonth(now), end: endOfMonth(now) };
-  };
+  const periodChamados = filteredChamados.filter(c => {
+    if (!dateRange.start && !dateRange.end) return true;
+    
+    const openingDate = new Date(c.data_abertura);
+    const start = dateRange.start ? startOfDay(new Date(dateRange.start)) : null;
+    const end = dateRange.end ? endOfDay(new Date(dateRange.end)) : null;
 
-  const interval = getPeriodInterval();
-  const periodChamados = filteredChamados.filter(c => 
-    isWithinInterval(new Date(c.data_abertura), interval)
-  );
+    if (start && end) {
+      return isWithinInterval(openingDate, { start, end });
+    }
+    if (start) {
+      return openingDate >= start;
+    }
+    if (end) {
+      return openingDate <= end;
+    }
+    return true;
+  });
 
   // Stats by Status
   const statusData = [
     { name: 'Aberto', value: periodChamados.filter(c => c.status === 'Aberto').length },
     { name: 'Aguardando', value: periodChamados.filter(c => c.status === 'Aguardando').length },
     { name: 'Resolvido', value: periodChamados.filter(c => c.status === 'Resolvido').length },
+    { name: 'Fechado', value: periodChamados.filter(c => c.status === 'Fechado').length },
   ];
 
   // Stats by Type
@@ -97,20 +105,31 @@ export const Dashboard: React.FC = () => {
     <div className="p-6 space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Dashboard</h1>
-        <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg border border-slate-200 dark:border-slate-700">
-          {(['day', 'week', 'month'] as const).map((p) => (
-            <button
-              key={p}
-              onClick={() => setPeriod(p)}
-              className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${
-                period === p 
-                  ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm' 
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
-              }`}
+        <div className="flex flex-wrap items-center gap-2 bg-white dark:bg-slate-900 p-2 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div className="flex items-center gap-2">
+            <input 
+              type="date" 
+              className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 text-sm outline-none dark:text-white"
+              value={dateRange.start}
+              onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
+            />
+            <span className="text-slate-400 text-sm">até</span>
+            <input 
+              type="date" 
+              className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-1.5 text-sm outline-none dark:text-white"
+              value={dateRange.end}
+              onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
+            />
+          </div>
+          {(dateRange.start || dateRange.end) && (
+            <button 
+              onClick={() => setDateRange({ start: '', end: '' })}
+              className="px-3 py-1.5 text-sm font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors flex items-center gap-1"
             >
-              {p === 'day' ? 'Dia' : p === 'week' ? 'Semana' : 'Mês'}
+              <XCircle size={16} />
+              Sem Filtro
             </button>
-          ))}
+          )}
         </div>
       </div>
 
@@ -124,7 +143,7 @@ export const Dashboard: React.FC = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Status Chart */}
-        <ChartContainer title={`Chamados por Status (${period === 'day' ? 'Hoje' : period === 'week' ? 'Semana' : 'Mês'})`}>
+        <ChartContainer title={`Chamados por Status ${dateRange.start || dateRange.end ? '(Período Selecionado)' : '(Total Ativos)'}`}>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={statusData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />

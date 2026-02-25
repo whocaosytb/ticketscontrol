@@ -51,8 +51,8 @@ export const TicketList: React.FC = () => {
   };
 
   const handleDelete = async (uuid: string, status: Status) => {
-    if (status === 'Resolvido' || status === 'Cancelado') {
-      alert('Chamados finalizados não podem ser excluídos.');
+    if (status === 'Resolvido' || status === 'Cancelado' || status === 'Fechado') {
+      alert('Chamados finalizados ou fechados não podem ser excluídos.');
       return;
     }
 
@@ -120,6 +120,7 @@ export const TicketList: React.FC = () => {
               <option value="Aguardando">Aguardando</option>
               <option value="Resolvido">Resolvido</option>
               <option value="Cancelado">Cancelado</option>
+              <option value="Fechado">Fechado</option>
             </select>
             <select 
               className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm outline-none dark:text-white"
@@ -180,7 +181,9 @@ export const TicketList: React.FC = () => {
               {filteredChamados.map((c) => (
                 <tr 
                   key={c.uuid} 
-                  className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer"
+                  className={`hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-all cursor-pointer ${
+                    (c.status === 'Cancelado' || c.status === 'Fechado') ? 'opacity-50 grayscale-[0.5]' : ''
+                  }`}
                   onClick={() => setSelectedTicket(c)}
                 >
                   <td className="px-3 py-2 text-xs font-mono text-slate-600 dark:text-slate-400">{formatVisualId(c.id_visual)}</td>
@@ -267,6 +270,7 @@ const StatusBadge: React.FC<{ status: Status }> = ({ status }) => {
     'Aguardando': 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
     'Resolvido': 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
     'Cancelado': 'bg-slate-100 text-slate-700 dark:bg-slate-900/30 dark:text-slate-400',
+    'Fechado': 'bg-slate-200 text-slate-800 dark:bg-slate-800 dark:text-slate-300',
   };
   return (
     <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${styles[status]}`}>
