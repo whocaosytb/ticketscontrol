@@ -375,18 +375,33 @@ export const TicketModal: React.FC<TicketModalProps> = ({ ticket, isOpen, onClos
 
           {!isClosed && ticket && (
             <div className="p-4 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800">
-              <div className="flex gap-2">
-                <input 
-                  type="text" 
+              <div className="flex items-end gap-2">
+                <textarea 
                   placeholder="Adicionar observação..." 
-                  className="flex-1 px-4 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-full outline-none focus:ring-2 focus:ring-blue-500 dark:text-white text-sm"
+                  className="flex-1 px-4 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-2xl outline-none focus:ring-2 focus:ring-blue-500 dark:text-white text-sm resize-none min-h-[40px] max-h-[120px]"
+                  rows={1}
                   value={newObs}
-                  onChange={(e) => setNewObs(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSendObs()}
+                  onChange={(e) => {
+                    setNewObs(e.target.value);
+                    // Auto-resize
+                    e.target.style.height = 'auto';
+                    e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSendObs();
+                      // Reset height
+                      (e.target as HTMLTextAreaElement).style.height = 'auto';
+                    }
+                  }}
                 />
                 <button 
-                  onClick={handleSendObs}
-                  className="p-2 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors shadow-md shadow-blue-500/20"
+                  onClick={() => {
+                    handleSendObs();
+                    // Reset height of textarea if possible via ref or just let it be
+                  }}
+                  className="p-2.5 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors shadow-md shadow-blue-500/20 shrink-0"
                 >
                   <Send size={18} />
                 </button>
