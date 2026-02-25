@@ -64,9 +64,16 @@ export const TicketList: React.FC = () => {
   };
 
   const filteredChamados = chamados.filter(c => {
-    const matchesSearch = c.titulo.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          c.id_visual.toString().includes(searchTerm) ||
-                          c.usuario.toLowerCase().includes(searchTerm.toLowerCase());
+    const searchLower = searchTerm.toLowerCase();
+    const sectorName = (c as any).setores?.nome?.toLowerCase() || '';
+    
+    const matchesSearch = 
+      c.titulo.toLowerCase().includes(searchLower) || 
+      c.id_visual.toString().includes(searchTerm) ||
+      c.usuario.toLowerCase().includes(searchLower) ||
+      (c.descricao || '').toLowerCase().includes(searchLower) ||
+      c.responsavel.toLowerCase().includes(searchLower) ||
+      sectorName.includes(searchLower);
     
     const matchesStatus = !filters.status || c.status === filters.status;
     const matchesTipo = !filters.tipo || c.tipo === filters.tipo;
