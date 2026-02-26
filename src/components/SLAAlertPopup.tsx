@@ -31,7 +31,7 @@ export const SLAAlertPopup: React.FC = () => {
     const { data } = await supabase
       .from('chamados')
       .select('*')
-      .not('status', 'in', '("Resolvido","Cancelado")');
+      .in('status', ['Aberto', 'Aguardando']);
 
     if (data) {
       const filtered = data.filter(c => {

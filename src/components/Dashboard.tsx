@@ -15,6 +15,11 @@ export const Dashboard: React.FC = () => {
   const [chamados, setChamados] = useState<Chamado[]>([]);
   const [dateRange, setDateRange] = useState<{ start: string; end: string }>({ start: '', end: '' });
   const [loading, setLoading] = useState(true);
+  
+  // Power BI style filters
+  const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
+  const [selectedSector, setSelectedSector] = useState<string | null>(null);
+  const [selectedType, setSelectedType] = useState<string | null>(null);
 
   useEffect(() => {
     fetchChamados();
@@ -31,7 +36,8 @@ export const Dashboard: React.FC = () => {
 
   const filteredChamados = chamados.filter(c => c.status !== 'Cancelado');
 
-  const periodChamados = filteredChamados.filter(c => {
+  // 1. First apply date filter
+  const dateFilteredChamados = filteredChamados.filter(c => {
     if (!dateRange.start && !dateRange.end) return true;
     
     const openingDate = new Date(c.data_abertura);
@@ -50,53 +56,79 @@ export const Dashboard: React.FC = () => {
     return true;
   });
 
+  // 2. Apply interactive filters (Power BI style)
+  const filteredForStatusChart = dateFilteredChamados.filter(c => {
+    const matchesSector = !selectedSector || (c as any).setores?.nome === selectedSector;
+    const matchesType = !selectedType || c.tipo === selectedType;
+    return matchesSector && matchesType;
+  });
+
+  const filteredForSectorChart = dateFilteredChamados.filter(c => {
+    const matchesStatus = !selectedStatus || c.status === selectedStatus;
+    const matchesType = !selectedType || c.tipo === selectedType;
+    return matchesStatus && matchesType;
+  });
+
+  const filteredForTypeChart = dateFilteredChamados.filter(c => {
+    const matchesStatus = !selectedStatus || c.status === selectedStatus;
+    const matchesSector = !selectedSector || (c as any).setores?.nome === selectedSector;
+    return matchesStatus && matchesSector;
+  });
+
+  const periodChamados = dateFilteredChamados.filter(c => {
+    const matchesStatus = !selectedStatus || c.status === selectedStatus;
+    const matchesSector = !selectedSector || (c as any).setores?.nome === selectedSector;
+    const matchesType = !selectedType || c.tipo === selectedType;
+    return matchesStatus && matchesSector && matchesType;
+  });
+
   // Stats by Status
   const statusData = [
-    { name: 'Aberto', value: periodChamados.filter(c => c.status === 'Aberto').length },
-    { name: 'Aguardando', value: periodChamados.filter(c => c.status === 'Aguardando').length },
-    { name: 'Resolvido', value: periodChamados.filter(c => c.status === 'Resolvido').length },
-    { name: 'Fechado', value: periodChamados.filter(c => c.status === 'Fechado').length },
+    { name: 'Aberto', value: filteredForStatusChart.filter(c => c.status === 'Aberto').length },
+    { name: 'Aguardando', value: filteredForStatusChart.filter(c => c.status === 'Aguardando').length },
+    { name: 'Resolvido', value: filteredForStatusChart.filter(c => c.status === 'Resolvido').length },
+    { name: 'Fechado', value: filteredForStatusChart.filter(c => c.status === 'Fechado').length },
   ];
 
   // Stats by Type
   const typeData = [
-    { name: 'Incidente', value: periodChamados.filter(c => c.tipo === 'Incidente').length },
-    { name: 'Solicitação', value: periodChamados.filter(c => c.tipo === 'Solicitação').length },
-    { name: 'Melhoria', value: periodChamados.filter(c => c.tipo === 'Melhoria').length },
+    { name: 'Incidente', value: filteredForTypeChart.filter(c => c.tipo === 'Incidente').length },
+    { name: 'Solicitação', value: filteredForTypeChart.filter(c => c.tipo === 'Solicitação').length },
+    { name: 'Melhoria', value: filteredForTypeChart.filter(c => c.tipo === 'Melhoria').length },
   ];
 
   // Stats by Sector
   const sectorCounts: Record<string, number> = {};
-  periodChamados.forEach(c => {
+  filteredForSectorChart.forEach(c => {
     const name = (c as any).setores?.nome || 'Sem Setor';
     sectorCounts[name] = (sectorCounts[name] || 0) + 1;
   });
   const sectorData = Object.entries(sectorCounts).map(([name, value]) => ({ name, value }));
 
   // SLA Metrics
-  const resolvedChamados = chamados.filter(c => c.status === 'Resolvido');
+  const resolvedChamados = periodChamados.filter(c => c.status === 'Resolvido' || c.status === 'Fechado');
   const withinSLA = resolvedChamados.filter(c => 
     new Date(c.data_fechamento!) <= new Date(c.sla_atual)
   ).length;
-  const outsideSLA = resolvedChamados.length - withinSLA;
   const slaPercentage = resolvedChamados.length > 0 ? (withinSLA / resolvedChamados.length) * 100 : 0;
 
-  // Average Time
-  const avgTime = resolvedChamados.length > 0 
-    ? resolvedChamados.reduce((acc, c) => acc + differenceInHours(new Date(c.data_fechamento!), new Date(c.data_abertura)), 0) / resolvedChamados.length
+  // Average Time (Only for Incidentes)
+  const incidentesResolvidos = resolvedChamados.filter(c => c.tipo === 'Incidente');
+  const avgTime = incidentesResolvidos.length > 0 
+    ? incidentesResolvidos.reduce((acc, c) => acc + differenceInHours(new Date(c.data_fechamento!), new Date(c.data_abertura)), 0) / incidentesResolvidos.length
     : 0;
 
   // Reduced List for SLA
-  const slaList = filteredChamados
+  const slaList = periodChamados
     .filter(c => c.status === 'Aberto' || c.status === 'Aguardando')
     .sort((a, b) => new Date(a.sla_atual).getTime() - new Date(b.sla_atual).getTime())
     .slice(0, 5);
 
   // Active Status (excluding closed)
   const activeStatusData = [
-    { name: 'Aberto', value: chamados.filter(c => c.status === 'Aberto').length },
-    { name: 'Aguardando', value: chamados.filter(c => c.status === 'Aguardando').length },
-    { name: 'Vencidos', value: chamados.filter(c => (c.status === 'Aberto' || c.status === 'Aguardando') && new Date(c.sla_atual) < new Date()).length },
+    { name: 'Aberto', value: periodChamados.filter(c => c.status === 'Aberto').length },
+    { name: 'Aguardando', value: periodChamados.filter(c => c.status === 'Aguardando').length },
+    { name: 'Vencidos', value: periodChamados.filter(c => (c.status === 'Aberto' || c.status === 'Aguardando') && new Date(c.sla_atual) < new Date()).length },
   ];
 
   if (loading) return <div className="p-8 text-center">Carregando métricas...</div>;
@@ -121,13 +153,18 @@ export const Dashboard: React.FC = () => {
               onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
             />
           </div>
-          {(dateRange.start || dateRange.end) && (
+          {(dateRange.start || dateRange.end || selectedStatus || selectedSector || selectedType) && (
             <button 
-              onClick={() => setDateRange({ start: '', end: '' })}
+              onClick={() => {
+                setDateRange({ start: '', end: '' });
+                setSelectedStatus(null);
+                setSelectedSector(null);
+                setSelectedType(null);
+              }}
               className="px-3 py-1.5 text-sm font-medium text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors flex items-center gap-1"
             >
               <XCircle size={16} />
-              Sem Filtro
+              Limpar Filtros
             </button>
           )}
         </div>
@@ -135,17 +172,28 @@ export const Dashboard: React.FC = () => {
 
       {/* Top Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard title="Total Ativos" value={chamados.filter(c => c.status === 'Aberto' || c.status === 'Aguardando').length} icon={<List className="text-blue-500" />} />
+        <StatCard title="Total Ativos" value={periodChamados.filter(c => c.status === 'Aberto' || c.status === 'Aguardando').length} icon={<List className="text-blue-500" />} />
         <StatCard title="Vencidos" value={activeStatusData[2].value} icon={<AlertTriangle className="text-red-500" />} />
         <StatCard title="SLA %" value={`${slaPercentage.toFixed(1)}%`} icon={<CheckCircle className="text-emerald-500" />} />
-        <StatCard title="Tempo Médio" value={`${avgTime.toFixed(1)}h`} icon={<Clock className="text-amber-500" />} />
+        <StatCard title="T. Médio (Incidentes)" value={`${avgTime.toFixed(1)}h`} icon={<Clock className="text-amber-500" />} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Status Chart */}
-        <ChartContainer title={`Chamados por Status ${dateRange.start || dateRange.end ? '(Período Selecionado)' : '(Total Ativos)'}`}>
+        <ChartContainer 
+          title={`Chamados por Status ${dateRange.start || dateRange.end ? '(Período Selecionado)' : '(Total Ativos)'}`}
+          onClear={() => setSelectedStatus(null)}
+          isActive={!!selectedStatus}
+        >
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={statusData}>
+            <BarChart 
+              data={statusData}
+              onClick={(data) => {
+                if (data && data.activeLabel) {
+                  setSelectedStatus(prev => prev === data.activeLabel ? null : data.activeLabel);
+                }
+              }}
+            >
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
               <XAxis dataKey="name" stroke="#64748b" />
               <YAxis stroke="#64748b" />
@@ -153,13 +201,29 @@ export const Dashboard: React.FC = () => {
                 contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                 formatter={(value: number) => [value, 'Quantidade']}
               />
-              <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+              <Bar 
+                dataKey="value" 
+                radius={[4, 4, 0, 0]}
+                cursor="pointer"
+              >
+                {statusData.map((entry, index) => (
+                  <Cell 
+                    key={`cell-${index}`} 
+                    fill={selectedStatus === entry.name ? '#2563eb' : '#3b82f6'} 
+                    fillOpacity={!selectedStatus || selectedStatus === entry.name ? 1 : 0.3}
+                  />
+                ))}
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         </ChartContainer>
 
         {/* Type Chart */}
-        <ChartContainer title="Chamados por Tipo">
+        <ChartContainer 
+          title="Chamados por Tipo"
+          onClear={() => setSelectedType(null)}
+          isActive={!!selectedType}
+        >
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie
@@ -171,9 +235,19 @@ export const Dashboard: React.FC = () => {
                 paddingAngle={5}
                 dataKey="value"
                 nameKey="name"
+                onClick={(data) => {
+                  if (data && data.name) {
+                    setSelectedType(prev => prev === data.name ? null : data.name);
+                  }
+                }}
+                cursor="pointer"
               >
                 {typeData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  <Cell 
+                    key={`cell-${index}`} 
+                    fill={COLORS[index % COLORS.length]} 
+                    fillOpacity={!selectedType || selectedType === entry.name ? 1 : 0.3}
+                  />
                 ))}
               </Pie>
               <Tooltip formatter={(value: number) => [value, 'Chamados']} />
@@ -183,9 +257,21 @@ export const Dashboard: React.FC = () => {
         </ChartContainer>
 
         {/* Sector Chart */}
-        <ChartContainer title="Chamados por Setor">
+        <ChartContainer 
+          title="Chamados por Setor"
+          onClear={() => setSelectedSector(null)}
+          isActive={!!selectedSector}
+        >
           <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={sectorData} layout="vertical">
+            <BarChart 
+              data={sectorData} 
+              layout="vertical"
+              onClick={(data) => {
+                if (data && data.activeLabel) {
+                  setSelectedSector(prev => prev === data.activeLabel ? null : data.activeLabel);
+                }
+              }}
+            >
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
               <XAxis type="number" stroke="#64748b" />
               <YAxis dataKey="name" type="category" stroke="#64748b" hide={true} />
@@ -193,7 +279,19 @@ export const Dashboard: React.FC = () => {
                 contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                 formatter={(value: number) => [value, 'Chamados']}
               />
-              <Bar dataKey="value" fill="#8b5cf6" radius={[0, 4, 4, 0]} />
+              <Bar 
+                dataKey="value" 
+                radius={[0, 4, 4, 0]}
+                cursor="pointer"
+              >
+                {sectorData.map((entry, index) => (
+                  <Cell 
+                    key={`cell-${index}`} 
+                    fill={selectedSector === entry.name ? '#7c3aed' : '#8b5cf6'} 
+                    fillOpacity={!selectedSector || selectedSector === entry.name ? 1 : 0.3}
+                  />
+                ))}
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         </ChartContainer>
@@ -234,9 +332,19 @@ const StatCard: React.FC<{ title: string; value: string | number; icon: React.Re
   </div>
 );
 
-const ChartContainer: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
-  <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-    <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-6">{title}</h3>
+const ChartContainer: React.FC<{ title: string; children: React.ReactNode; onClear?: () => void; isActive?: boolean }> = ({ title, children, onClear, isActive }) => (
+  <div className={`bg-white dark:bg-slate-900 p-6 rounded-2xl border transition-all ${isActive ? 'border-blue-500 ring-1 ring-blue-500/20' : 'border-slate-200 dark:border-slate-800'} shadow-sm`}>
+    <div className="flex justify-between items-center mb-6">
+      <h3 className="text-lg font-semibold text-slate-900 dark:text-white">{title}</h3>
+      {isActive && onClear && (
+        <button 
+          onClick={onClear}
+          className="text-[10px] font-bold uppercase tracking-wider text-blue-600 hover:text-blue-700 bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded"
+        >
+          Limpar
+        </button>
+      )}
+    </div>
     {children}
   </div>
 );
