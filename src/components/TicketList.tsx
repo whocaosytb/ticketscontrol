@@ -16,8 +16,8 @@ export const TicketList: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({
     statuses: [] as Status[],
-    tipo: '',
-    setor: '',
+    tipos: [] as TipoChamado[],
+    setores: [] as string[],
     startDate: '',
     endDate: ''
   });
@@ -28,14 +28,17 @@ export const TicketList: React.FC = () => {
   const [selectedTicket, setSelectedTicket] = useState<Chamado | null>(null);
   const [isNewTicketModalOpen, setIsNewTicketModalOpen] = useState(false);
   const [isStatusFilterOpen, setIsStatusFilterOpen] = useState(false);
+  const [isTipoFilterOpen, setIsTipoFilterOpen] = useState(false);
+  const [isSetorFilterOpen, setIsSetorFilterOpen] = useState(false);
 
   useEffect(() => {
     fetchData();
     
     const handleClickOutside = (e: MouseEvent) => {
-      if (!(e.target as HTMLElement).closest('.status-filter-container')) {
-        setIsStatusFilterOpen(false);
-      }
+      const target = e.target as HTMLElement;
+      if (!target.closest('.status-filter-container')) setIsStatusFilterOpen(false);
+      if (!target.closest('.tipo-filter-container')) setIsTipoFilterOpen(false);
+      if (!target.closest('.setor-filter-container')) setIsSetorFilterOpen(false);
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -86,8 +89,8 @@ export const TicketList: React.FC = () => {
       sectorName.includes(searchLower);
     
     const matchesStatus = filters.statuses.length === 0 || filters.statuses.includes(c.status);
-    const matchesTipo = !filters.tipo || c.tipo === filters.tipo;
-    const matchesSetor = !filters.setor || c.setor_id === filters.setor;
+    const matchesTipo = filters.tipos.length === 0 || filters.tipos.includes(c.tipo);
+    const matchesSetor = filters.setores.length === 0 || filters.setores.includes(c.setor_id);
     
     let matchesDate = true;
     if (filters.startDate || filters.endDate) {
@@ -143,6 +146,7 @@ export const TicketList: React.FC = () => {
             />
           </div>
           <div className="flex flex-wrap gap-2 items-center">
+            {/* Status Filter */}
             <div className="relative status-filter-container">
               <button 
                 onClick={() => setIsStatusFilterOpen(!isStatusFilterOpen)}
@@ -178,24 +182,77 @@ export const TicketList: React.FC = () => {
               )}
             </div>
 
-            <select 
-              className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm outline-none dark:text-white"
-              value={filters.tipo}
-              onChange={(e) => setFilters(prev => ({ ...prev, tipo: e.target.value }))}
-            >
-              <option value="">Tipo: Todos</option>
-              <option value="Incidente">Incidente</option>
-              <option value="Solicitação">Solicitação</option>
-              <option value="Melhoria">Melhoria</option>
-            </select>
-            <select 
-              className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm outline-none dark:text-white"
-              value={filters.setor}
-              onChange={(e) => setFilters(prev => ({ ...prev, setor: e.target.value }))}
-            >
-              <option value="">Setor: Todos</option>
-              {setores.map(s => <option key={s.id} value={s.id}>{s.nome}</option>)}
-            </select>
+            {/* Tipo Filter */}
+            <div className="relative tipo-filter-container">
+              <button 
+                onClick={() => setIsTipoFilterOpen(!isTipoFilterOpen)}
+                className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm outline-none dark:text-white min-w-[140px] hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+              >
+                <Filter size={16} className="text-slate-400" />
+                <span>{filters.tipos.length === 0 ? 'Tipo: Todos' : `Tipo: ${filters.tipos.length}`}</span>
+                <ChevronDown size={14} className={`ml-auto transition-transform ${isTipoFilterOpen ? 'rotate-180' : ''}`} />
+              </button>
+              
+              {isTipoFilterOpen && (
+                <div className="absolute top-full left-0 mt-2 w-48 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-20 p-2 animate-in zoom-in-95 duration-200">
+                  {['Incidente', 'Solicitação', 'Melhoria'].map((tipo) => (
+                    <label key={tipo} className="flex items-center gap-3 px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg cursor-pointer transition-colors">
+                      <input 
+                        type="checkbox" 
+                        className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                        checked={filters.tipos.includes(tipo as TipoChamado)}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setFilters(prev => ({
+                            ...prev,
+                            tipos: checked 
+                              ? [...prev.tipos, tipo as TipoChamado]
+                              : prev.tipos.filter(t => t !== tipo)
+                          }));
+                        }}
+                      />
+                      <span className="text-sm text-slate-700 dark:text-slate-300">{tipo}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Setor Filter */}
+            <div className="relative setor-filter-container">
+              <button 
+                onClick={() => setIsSetorFilterOpen(!isSetorFilterOpen)}
+                className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm outline-none dark:text-white min-w-[140px] hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+              >
+                <Filter size={16} className="text-slate-400" />
+                <span>{filters.setores.length === 0 ? 'Setor: Todos' : `Setor: ${filters.setores.length}`}</span>
+                <ChevronDown size={14} className={`ml-auto transition-transform ${isSetorFilterOpen ? 'rotate-180' : ''}`} />
+              </button>
+              
+              {isSetorFilterOpen && (
+                <div className="absolute top-full left-0 mt-2 w-56 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-20 p-2 animate-in zoom-in-95 duration-200 max-h-[300px] overflow-y-auto">
+                  {setores.map((setor) => (
+                    <label key={setor.id} className="flex items-center gap-3 px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg cursor-pointer transition-colors">
+                      <input 
+                        type="checkbox" 
+                        className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                        checked={filters.setores.includes(setor.id)}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setFilters(prev => ({
+                            ...prev,
+                            setores: checked 
+                              ? [...prev.setores, setor.id]
+                              : prev.setores.filter(id => id !== setor.id)
+                          }));
+                        }}
+                      />
+                      <span className="text-sm text-slate-700 dark:text-slate-300">{setor.nome}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
 
             <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1">
               <input 
@@ -213,9 +270,9 @@ export const TicketList: React.FC = () => {
               />
             </div>
 
-            {(filters.statuses.length > 0 || filters.tipo || filters.setor || filters.startDate || filters.endDate) && (
+            {(filters.statuses.length > 0 || filters.tipos.length > 0 || filters.setores.length > 0 || filters.startDate || filters.endDate) && (
               <button 
-                onClick={() => setFilters({ statuses: [], tipo: '', setor: '', startDate: '', endDate: '' })}
+                onClick={() => setFilters({ statuses: [], tipos: [], setores: [], startDate: '', endDate: '' })}
                 className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors flex items-center gap-1 text-sm font-medium"
                 title="Limpar Filtros"
               >
