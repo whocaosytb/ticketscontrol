@@ -15,10 +15,11 @@ export const TicketList: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filters, setFilters] = useState({
-    status: '',
+    statuses: [] as Status[],
     tipo: '',
     setor: '',
-    date: ''
+    startDate: '',
+    endDate: ''
   });
   const [sortConfig, setSortConfig] = useState<{ key: keyof Chamado; direction: 'asc' | 'desc' }>({
     key: 'id_visual',
@@ -26,9 +27,18 @@ export const TicketList: React.FC = () => {
   });
   const [selectedTicket, setSelectedTicket] = useState<Chamado | null>(null);
   const [isNewTicketModalOpen, setIsNewTicketModalOpen] = useState(false);
+  const [isStatusFilterOpen, setIsStatusFilterOpen] = useState(false);
 
   useEffect(() => {
     fetchData();
+    
+    const handleClickOutside = (e: MouseEvent) => {
+      if (!(e.target as HTMLElement).closest('.status-filter-container')) {
+        setIsStatusFilterOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const fetchData = async () => {
@@ -75,10 +85,26 @@ export const TicketList: React.FC = () => {
       c.responsavel.toLowerCase().includes(searchLower) ||
       sectorName.includes(searchLower);
     
-    const matchesStatus = !filters.status || c.status === filters.status;
+    const matchesStatus = filters.statuses.length === 0 || filters.statuses.includes(c.status);
     const matchesTipo = !filters.tipo || c.tipo === filters.tipo;
     const matchesSetor = !filters.setor || c.setor_id === filters.setor;
-    const matchesDate = !filters.date || format(new Date(c.data_abertura), 'yyyy-MM-dd') === filters.date;
+    
+    let matchesDate = true;
+    if (filters.startDate || filters.endDate) {
+      const openingDate = new Date(c.data_abertura);
+      openingDate.setHours(0, 0, 0, 0);
+      
+      if (filters.startDate) {
+        const start = new Date(filters.startDate);
+        start.setHours(0, 0, 0, 0);
+        if (openingDate < start) matchesDate = false;
+      }
+      if (filters.endDate) {
+        const end = new Date(filters.endDate);
+        end.setHours(23, 59, 59, 999);
+        if (openingDate > end) matchesDate = false;
+      }
+    }
 
     return matchesSearch && matchesStatus && matchesTipo && matchesSetor && matchesDate;
   }).sort((a, b) => {
@@ -116,19 +142,42 @@ export const TicketList: React.FC = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0">
-            <select 
-              className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm outline-none dark:text-white"
-              value={filters.status}
-              onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
-            >
-              <option value="">Status: Todos</option>
-              <option value="Aberto">Aberto</option>
-              <option value="Aguardando">Aguardando</option>
-              <option value="Resolvido">Resolvido</option>
-              <option value="Cancelado">Cancelado</option>
-              <option value="Fechado">Fechado</option>
-            </select>
+          <div className="flex flex-wrap gap-2 items-center">
+            <div className="relative status-filter-container">
+              <button 
+                onClick={() => setIsStatusFilterOpen(!isStatusFilterOpen)}
+                className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm outline-none dark:text-white min-w-[140px] hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+              >
+                <Filter size={16} className="text-slate-400" />
+                <span>{filters.statuses.length === 0 ? 'Status: Todos' : `Status: ${filters.statuses.length}`}</span>
+                <ChevronDown size={14} className={`ml-auto transition-transform ${isStatusFilterOpen ? 'rotate-180' : ''}`} />
+              </button>
+              
+              {isStatusFilterOpen && (
+                <div className="absolute top-full left-0 mt-2 w-48 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-20 p-2 animate-in zoom-in-95 duration-200">
+                  {['Aberto', 'Aguardando', 'Resolvido', 'Cancelado', 'Fechado'].map((status) => (
+                    <label key={status} className="flex items-center gap-3 px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg cursor-pointer transition-colors">
+                      <input 
+                        type="checkbox" 
+                        className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                        checked={filters.statuses.includes(status as Status)}
+                        onChange={(e) => {
+                          const checked = e.target.checked;
+                          setFilters(prev => ({
+                            ...prev,
+                            statuses: checked 
+                              ? [...prev.statuses, status as Status]
+                              : prev.statuses.filter(s => s !== status)
+                          }));
+                        }}
+                      />
+                      <span className="text-sm text-slate-700 dark:text-slate-300">{status}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+
             <select 
               className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm outline-none dark:text-white"
               value={filters.tipo}
@@ -147,18 +196,31 @@ export const TicketList: React.FC = () => {
               <option value="">Setor: Todos</option>
               {setores.map(s => <option key={s.id} value={s.id}>{s.nome}</option>)}
             </select>
-            <input 
-              type="date" 
-              className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm outline-none dark:text-white"
-              value={filters.date}
-              onChange={(e) => setFilters(prev => ({ ...prev, date: e.target.value }))}
-            />
-            {(filters.status || filters.tipo || filters.setor || filters.date) && (
+
+            <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1">
+              <input 
+                type="date" 
+                className="bg-transparent border-none text-xs outline-none dark:text-white p-1"
+                value={filters.startDate}
+                onChange={(e) => setFilters(prev => ({ ...prev, startDate: e.target.value }))}
+              />
+              <span className="text-slate-400 text-[10px] uppercase font-bold">até</span>
+              <input 
+                type="date" 
+                className="bg-transparent border-none text-xs outline-none dark:text-white p-1"
+                value={filters.endDate}
+                onChange={(e) => setFilters(prev => ({ ...prev, endDate: e.target.value }))}
+              />
+            </div>
+
+            {(filters.statuses.length > 0 || filters.tipo || filters.setor || filters.startDate || filters.endDate) && (
               <button 
-                onClick={() => setFilters({ status: '', tipo: '', setor: '', date: '' })}
-                className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                onClick={() => setFilters({ statuses: [], tipo: '', setor: '', startDate: '', endDate: '' })}
+                className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors flex items-center gap-1 text-sm font-medium"
+                title="Limpar Filtros"
               >
                 <X size={18} />
+                <span className="hidden sm:inline">Limpar</span>
               </button>
             )}
           </div>
