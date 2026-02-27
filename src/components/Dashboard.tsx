@@ -136,7 +136,16 @@ export const Dashboard: React.FC = () => {
   return (
     <div className="p-6 space-y-8 animate-in fade-in duration-500">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Dashboard</h1>
+        <div className="flex items-center gap-4">
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">Dashboard</h1>
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent('open-sla-alert'))}
+            className="flex items-center gap-2 px-3 py-1.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-lg text-sm font-bold hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors shadow-sm border border-amber-200 dark:border-amber-800 cursor-pointer"
+          >
+            <AlertTriangle size={16} />
+            Alertas SLA
+          </button>
+        </div>
         <div className="flex flex-wrap items-center gap-2 bg-white dark:bg-slate-900 p-2 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
           <div className="flex items-center gap-2">
             <input 

@@ -14,6 +14,13 @@ export const SLAAlertPopup: React.FC = () => {
     if (!hasShown) {
       fetchVencidos();
     }
+
+    const handleOpenEvent = () => {
+      fetchVencidos(true);
+    };
+
+    window.addEventListener('open-sla-alert', handleOpenEvent);
+    return () => window.removeEventListener('open-sla-alert', handleOpenEvent);
   }, []);
 
   useEffect(() => {
@@ -26,7 +33,7 @@ export const SLAAlertPopup: React.FC = () => {
     return () => window.removeEventListener('keydown', handleEsc);
   }, [isOpen]);
 
-  const fetchVencidos = async () => {
+  const fetchVencidos = async (forceOpen = false) => {
     const now = new Date();
     const { data } = await supabase
       .from('chamados')
@@ -44,6 +51,8 @@ export const SLAAlertPopup: React.FC = () => {
         setVencidos(filtered);
         setIsOpen(true);
         sessionStorage.setItem('sla_alert_shown', 'true');
+      } else if (forceOpen) {
+        alert('Não há chamados requerentes de atenção no momento.');
       }
     }
   };

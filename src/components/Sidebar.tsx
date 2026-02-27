@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, ListTodo, Settings, LogOut, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, ListTodo, Settings, ShieldCheck } from 'lucide-react';
 
 interface SidebarProps {
   activeTab: string;
@@ -30,7 +30,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
           <button
             key={item.id}
             onClick={() => setActiveTab(item.id)}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all ${
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all cursor-pointer ${
               activeTab === item.id
                 ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 shadow-sm'
                 : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-200'
