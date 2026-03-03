@@ -30,6 +30,7 @@ export interface Chamado {
   sla_atual: string;
   inicio_aguardando: string | null;
   fim_aguardando: string | null;
+  tempo_gasto: number | null;
   created_at: string;
 }
 

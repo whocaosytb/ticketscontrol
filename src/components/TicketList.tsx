@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { Chamado, Setor, Status, TipoChamado } from '../types';
-import { formatVisualId } from '../lib/utils';
+import { formatVisualId, minutesToFormat } from '../lib/utils';
 import { format } from 'date-fns';
 import { 
   Search, Filter, ChevronUp, ChevronDown, MoreVertical, 
@@ -79,6 +79,7 @@ export const TicketList: React.FC = () => {
   const filteredChamados = chamados.filter(c => {
     const searchLower = searchTerm.toLowerCase();
     const sectorName = (c as any).setores?.nome?.toLowerCase() || '';
+    const formattedTime = minutesToFormat(c.tempo_gasto).toLowerCase();
     
     const matchesSearch = 
       c.titulo.toLowerCase().includes(searchLower) || 
@@ -86,6 +87,7 @@ export const TicketList: React.FC = () => {
       c.usuario.toLowerCase().includes(searchLower) ||
       (c.descricao || '').toLowerCase().includes(searchLower) ||
       c.responsavel.toLowerCase().includes(searchLower) ||
+      formattedTime.includes(searchLower) ||
       sectorName.includes(searchLower);
     
     const matchesStatus = filters.statuses.length === 0 || filters.statuses.includes(c.status);
@@ -148,7 +150,7 @@ export const TicketList: React.FC = () => {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <input 
               type="text" 
-              placeholder="Pesquisar por título, ID ou usuário..." 
+              placeholder="Pesquisar por título, ID ou setor..." 
               className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:text-white"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -304,7 +306,7 @@ export const TicketList: React.FC = () => {
                 <SortableHeader label="Data Abertura" sortKey="data_abertura" currentSort={sortConfig} onSort={handleSort} />
                 <SortableHeader label="Título" sortKey="titulo" currentSort={sortConfig} onSort={handleSort} />
                 <SortableHeader label="Descrição" sortKey="descricao" currentSort={sortConfig} onSort={handleSort} />
-                <SortableHeader label="Usuário" sortKey="usuario" currentSort={sortConfig} onSort={handleSort} />
+                <SortableHeader label="Tempo Gasto" sortKey="tempo_gasto" currentSort={sortConfig} onSort={handleSort} />
                 <SortableHeader label="Setor" sortKey="setor_id" currentSort={sortConfig} onSort={handleSort} />
                 <SortableHeader label="Previsão" sortKey="previsao" currentSort={sortConfig} onSort={handleSort} />
                 <SortableHeader label="Responsável" sortKey="responsavel" currentSort={sortConfig} onSort={handleSort} />
@@ -328,7 +330,7 @@ export const TicketList: React.FC = () => {
                   <td className="px-3 py-2 text-xs text-slate-600 dark:text-slate-400 whitespace-nowrap">{format(new Date(c.data_abertura), 'dd/MM/yy HH:mm')}</td>
                   <td className="px-3 py-2 text-xs font-medium text-slate-900 dark:text-white max-w-[150px] truncate">{c.titulo}</td>
                   <td className="px-3 py-2 text-xs text-slate-600 dark:text-slate-400 max-w-[200px] truncate">{c.descricao || '-'}</td>
-                  <td className="px-3 py-2 text-xs text-slate-600 dark:text-slate-400 whitespace-nowrap">{c.usuario}</td>
+                  <td className="px-3 py-2 text-xs text-slate-600 dark:text-slate-400 whitespace-nowrap">{minutesToFormat(c.tempo_gasto) || '-'}</td>
                   <td className="px-3 py-2 text-xs text-slate-600 dark:text-slate-400 whitespace-nowrap">{(c as any).setores?.nome || '-'}</td>
                   <td className="px-3 py-2 text-xs text-slate-600 dark:text-slate-400 whitespace-nowrap">{c.previsao ? format(new Date(c.previsao), 'dd/MM/yy') : '-'}</td>
                   <td className="px-3 py-2 text-xs text-slate-600 dark:text-slate-400 whitespace-nowrap">{c.responsavel}</td>

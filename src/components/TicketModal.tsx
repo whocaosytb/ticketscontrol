@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { Chamado, Setor, Status, TipoChamado, Abrangencia, Prioridade, Observacao, TipoObservacao } from '../types';
-import { calculateSLA, formatVisualId, getBrazilTime } from '../lib/utils';
+import { calculateSLA, formatVisualId, getBrazilTime, minutesToFormat, formatToMinutes } from '../lib/utils';
 import { X, Send, Clock, User, Tag, AlertCircle, Info, CheckCircle, Trash2, MessageSquare } from 'lucide-react';
 import { format, addDays } from 'date-fns';
+import { DurationPicker } from './DurationPicker';
 
 interface TicketModalProps {
   ticket: Chamado | null;
@@ -23,9 +24,11 @@ export const TicketModal: React.FC<TicketModalProps> = ({ ticket, isOpen, onClos
     status: 'Aberto',
     usuario: 'Admin',
     responsavel: 'Admin',
-    previsao: null
+    previsao: null,
+    tempo_gasto: null
   });
 
+  const [isDurationPickerOpen, setIsDurationPickerOpen] = useState(false);
   const [observacoes, setObservacoes] = useState<Observacao[]>([]);
   const [newObs, setNewObs] = useState('');
   const [loading, setLoading] = useState(false);
@@ -35,8 +38,22 @@ export const TicketModal: React.FC<TicketModalProps> = ({ ticket, isOpen, onClos
     if (ticket) {
       setFormData(ticket);
       fetchObservacoes(ticket.uuid);
+    } else {
+      setFormData({
+        titulo: '',
+        descricao: '',
+        tipo: 'Solicitação',
+        abrangencia: 'Colaborador',
+        prioridade: 'Baixa',
+        setor_id: setores[0]?.id || '',
+        status: 'Aberto',
+        usuario: 'Admin',
+        responsavel: 'Admin',
+        previsao: null,
+        tempo_gasto: null
+      });
     }
-  }, [ticket]);
+  }, [ticket, setores]);
 
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
@@ -112,6 +129,14 @@ export const TicketModal: React.FC<TicketModalProps> = ({ ticket, isOpen, onClos
     };
 
     if (formData.status === 'Resolvido' || formData.status === 'Cancelado' || formData.status === 'Fechado') {
+      if (formData.tempo_gasto === null || formData.tempo_gasto === undefined) {
+        alert('O Tempo Gasto é obrigatório para finalizar o chamado.');
+        setLoading(false);
+        return;
+      }
+
+      payload.tempo_gasto = formData.tempo_gasto;
+
       if (!ticket || (ticket.status !== 'Resolvido' && ticket.status !== 'Cancelado' && ticket.status !== 'Fechado')) {
         if (!confirm(`Tem certeza que deseja marcar como ${formData.status}? Esta ação não pode ser desfeita.`)) {
           setLoading(false);
@@ -305,6 +330,35 @@ export const TicketModal: React.FC<TicketModalProps> = ({ ticket, isOpen, onClos
                   />
                 </div>
               </div>
+              
+              {(formData.status === 'Resolvido' || formData.status === 'Cancelado' || formData.status === 'Fechado') && (
+                <div className="space-y-1 animate-in slide-in-from-top-2 duration-300">
+                  <label className="text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                    <Clock size={14} className="text-blue-500" />
+                    Tempo Gasto <span className="text-red-500">*</span>
+                  </label>
+                  <button
+                    type="button"
+                    disabled={isClosed && ticket?.status !== 'Resolvido'}
+                    onClick={() => setIsDurationPickerOpen(true)}
+                    className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 text-left flex items-center justify-between group disabled:opacity-50"
+                  >
+                    <span className={formData.tempo_gasto !== null ? 'dark:text-white' : 'text-slate-400'}>
+                      {formData.tempo_gasto !== null ? minutesToFormat(formData.tempo_gasto) : 'Selecionar tempo...'}
+                    </span>
+                    <Clock className="w-4 h-4 text-slate-400 group-hover:text-blue-500 transition-colors" />
+                  </button>
+                  <p className="text-[10px] text-slate-500">Informe o tempo total dedicado a este chamado.</p>
+                </div>
+              )}
+
+              <DurationPicker 
+                isOpen={isDurationPickerOpen}
+                onClose={() => setIsDurationPickerOpen(false)}
+                value={formData.tempo_gasto || null}
+                onChange={(minutes) => setFormData({ ...formData, tempo_gasto: minutes })}
+              />
+
               <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800 space-y-2">
                 <div className="flex items-center gap-2 text-blue-700 dark:text-blue-400">
                   <Clock size={16} />

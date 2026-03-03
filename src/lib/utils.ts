@@ -45,3 +45,35 @@ export const calculateSLA = (
 export const formatVisualId = (id: number) => {
   return `#${id.toString().padStart(5, '0')}`;
 };
+
+export const minutesToFormat = (minutes: number | null | undefined): string => {
+  if (minutes === null || minutes === undefined || isNaN(minutes)) return '';
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return `${h.toString().padStart(2, '0')}h${m.toString().padStart(2, '0')}`;
+};
+
+export const formatToMinutes = (str: string): number => {
+  if (!str) return 0;
+  const cleaned = str.toLowerCase().replace(/\s/g, '');
+  
+  // Format: 00h00
+  const match = cleaned.match(/(\d+)h(\d+)/);
+  if (match) {
+    return parseInt(match[1], 10) * 60 + parseInt(match[2], 10);
+  }
+  
+  // Format: 00h
+  const onlyH = cleaned.match(/(\d+)h/);
+  if (onlyH) {
+    return parseInt(onlyH[1], 10) * 60;
+  }
+  
+  // Format: 00m or just 00
+  const onlyM = cleaned.match(/(\d+)m/);
+  if (onlyM) {
+    return parseInt(onlyM[1], 10);
+  }
+  
+  return parseInt(cleaned, 10) || 0;
+};
