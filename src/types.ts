@@ -31,6 +31,7 @@ export interface Chamado {
   inicio_aguardando: string | null;
   fim_aguardando: string | null;
   tempo_gasto: number | null;
+  chamados_vinculados: number[] | null;
   created_at: string;
 }
 

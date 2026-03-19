@@ -376,6 +376,10 @@ export const TicketList: React.FC = () => {
             fetchData();
           }} 
           setores={setores}
+          onOpenTicket={async (id) => {
+            const { data } = await supabase.from('chamados').select('*, setores(nome)').eq('id_visual', id).single();
+            if (data) setSelectedTicket(data);
+          }}
         />
       )}
     </div>

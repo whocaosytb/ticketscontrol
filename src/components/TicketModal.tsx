@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { Chamado, Setor, Status, TipoChamado, Abrangencia, Prioridade, Observacao, TipoObservacao } from '../types';
 import { calculateSLA, formatVisualId, getBrazilTime, minutesToFormat, formatToMinutes } from '../lib/utils';
-import { X, Send, Clock, User, Tag, AlertCircle, Info, CheckCircle, Trash2, MessageSquare } from 'lucide-react';
+import { X, Send, Clock, User, Tag, AlertCircle, Info, CheckCircle, Trash2, MessageSquare, Link2, Plus, Trash } from 'lucide-react';
 import { format, addDays } from 'date-fns';
 import { DurationPicker } from './DurationPicker';
 
@@ -11,9 +11,10 @@ interface TicketModalProps {
   isOpen: boolean;
   onClose: () => void;
   setores: Setor[];
+  onOpenTicket?: (idVisual: number) => void;
 }
 
-export const TicketModal: React.FC<TicketModalProps> = ({ ticket, isOpen, onClose, setores }) => {
+export const TicketModal: React.FC<TicketModalProps> = ({ ticket, isOpen, onClose, setores, onOpenTicket }) => {
   const [formData, setFormData] = useState<Partial<Chamado>>({
     titulo: '',
     descricao: '',
@@ -25,10 +26,13 @@ export const TicketModal: React.FC<TicketModalProps> = ({ ticket, isOpen, onClos
     usuario: 'Admin',
     responsavel: 'Admin',
     previsao: null,
-    tempo_gasto: null
+    tempo_gasto: null,
+    chamados_vinculados: []
   });
 
   const [isDurationPickerOpen, setIsDurationPickerOpen] = useState(false);
+  const [linkedTicketsDetails, setLinkedTicketsDetails] = useState<any[]>([]);
+  const [linkInput, setLinkInput] = useState('');
   const [observacoes, setObservacoes] = useState<Observacao[]>([]);
   const [newObs, setNewObs] = useState('');
   const [loading, setLoading] = useState(false);
@@ -50,10 +54,27 @@ export const TicketModal: React.FC<TicketModalProps> = ({ ticket, isOpen, onClos
         usuario: 'Admin',
         responsavel: 'Admin',
         previsao: null,
-        tempo_gasto: null
+        tempo_gasto: null,
+        chamados_vinculados: []
       });
     }
   }, [ticket, setores]);
+
+  useEffect(() => {
+    if (formData.chamados_vinculados?.length) {
+      fetchLinkedTicketsDetails(formData.chamados_vinculados);
+    } else {
+      setLinkedTicketsDetails([]);
+    }
+  }, [formData.chamados_vinculados]);
+
+  const fetchLinkedTicketsDetails = async (ids: number[]) => {
+    const { data } = await supabase
+      .from('chamados')
+      .select('id_visual, titulo, status')
+      .in('id_visual', ids);
+    if (data) setLinkedTicketsDetails(data);
+  };
 
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
@@ -74,6 +95,39 @@ export const TicketModal: React.FC<TicketModalProps> = ({ ticket, isOpen, onClos
       .order('data_criacao', { ascending: true })
       .eq('chamado_id', chamadoId);
     if (data) setObservacoes(data);
+  };
+
+  const handleAddLink = async () => {
+    const id = parseInt(linkInput);
+    if (isNaN(id)) return;
+    if (id === formData.id_visual) {
+      alert('Não é possível vincular o próprio chamado.');
+      return;
+    }
+    if (formData.chamados_vinculados?.includes(id)) {
+      alert('Chamado já vinculado.');
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from('chamados')
+      .select('id_visual')
+      .eq('id_visual', id)
+      .single();
+
+    if (error || !data) {
+      alert('Chamado não encontrado.');
+      return;
+    }
+
+    const newLinks = [...(formData.chamados_vinculados || []), id];
+    setFormData({ ...formData, chamados_vinculados: newLinks });
+    setLinkInput('');
+  };
+
+  const handleRemoveLink = (id: number) => {
+    const newLinks = (formData.chamados_vinculados || []).filter(l => l !== id);
+    setFormData({ ...formData, chamados_vinculados: newLinks });
   };
 
   const addObservation = async (chamadoId: string, tipo: TipoObservacao, mensagem: string) => {
@@ -358,6 +412,64 @@ export const TicketModal: React.FC<TicketModalProps> = ({ ticket, isOpen, onClos
                 value={formData.tempo_gasto || null}
                 onChange={(minutes) => setFormData({ ...formData, tempo_gasto: minutes })}
               />
+
+              {/* Chamados Vinculados Section */}
+              <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300 font-semibold text-sm">
+                    <Link2 size={16} className="text-blue-500" />
+                    Chamados Vinculados
+                  </div>
+                </div>
+                
+                <div className="flex gap-2">
+                  <input 
+                    type="number"
+                    placeholder="Nº do chamado"
+                    className="flex-1 px-3 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"
+                    value={linkInput}
+                    onChange={(e) => setLinkInput(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleAddLink()}
+                  />
+                  <button 
+                    onClick={handleAddLink}
+                    className="p-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    <Plus size={16} />
+                  </button>
+                </div>
+
+                <div className="space-y-2 max-h-32 overflow-y-auto pr-1">
+                  {linkedTicketsDetails.length === 0 && (
+                    <p className="text-[10px] text-slate-400 italic text-center py-2">Nenhum chamado vinculado</p>
+                  )}
+                  {linkedTicketsDetails.map(link => (
+                    <div key={link.id_visual} className="flex items-center justify-between p-2 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-lg group">
+                      <div 
+                        className="flex flex-col cursor-pointer hover:opacity-80 transition-opacity flex-1"
+                        onClick={() => onOpenTicket?.(link.id_visual)}
+                      >
+                        <span className="text-[10px] font-bold text-blue-600">#{formatVisualId(link.id_visual)}</span>
+                        <span className="text-[10px] text-slate-600 dark:text-slate-400 truncate max-w-[180px]">{link.titulo}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[8px] px-1.5 py-0.5 rounded-full font-bold uppercase ${
+                          link.status === 'Resolvido' || link.status === 'Fechado' ? 'bg-emerald-100 text-emerald-700' :
+                          link.status === 'Aberto' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'
+                        }`}>
+                          {link.status}
+                        </span>
+                        <button 
+                          onClick={() => handleRemoveLink(link.id_visual)}
+                          className="p-1 text-slate-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                        >
+                          <Trash size={12} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
 
               <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800 space-y-2">
                 <div className="flex items-center gap-2 text-blue-700 dark:text-blue-400">
