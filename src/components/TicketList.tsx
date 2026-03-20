@@ -48,7 +48,7 @@ export const TicketList: React.FC = () => {
     setLoading(true);
     const [chamadosRes, setoresRes] = await Promise.all([
       supabase.from('chamados').select('*, setores(nome)').order('id_visual', { ascending: false }),
-      supabase.from('setores').select('*')
+      supabase.from('setores').select('*').order('nome', { ascending: true })
     ]);
 
     if (chamadosRes.data) setChamados(chamadosRes.data);
