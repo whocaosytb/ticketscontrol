@@ -179,7 +179,7 @@ export const Reports: React.FC = () => {
         </div>
 
         {/* Summary Table - Only visible on Print */}
-        <div className="hidden print:block mt-12">
+        <div className="hidden print:block mt-12 print:mt-0 print:break-before-page">
           <div className="p-4 border-b-2 border-slate-900 mb-4">
             <h3 className="text-lg font-black text-slate-900 uppercase tracking-tighter">Resumo por Setor</h3>
           </div>
@@ -278,6 +278,7 @@ export const Reports: React.FC = () => {
           
           .text-blue-600 { color: #2563eb !important; }
           .text-slate-500, .text-slate-400 { color: #64748b !important; }
+          .print\\:break-before-page { break-before: page !important; }
           
           @page { 
             size: A4 landscape; 
