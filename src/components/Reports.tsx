@@ -166,16 +166,75 @@ export const Reports: React.FC = () => {
       {/* Print Styles */}
       <style>{`
         @media print {
-          body { background: white !important; color: black !important; }
-          nav, aside, button, .print\\:hidden { display: none !important; }
-          main { padding: 0 !important; margin: 0 !important; overflow: visible !important; width: 100% !important; }
-          .max-w-7xl { max-width: none !important; width: 100% !important; }
-          .rounded-3xl, .rounded-2xl { border-radius: 0 !important; }
-          .shadow-sm, .shadow-lg { box-shadow: none !important; }
-          table { width: 100% !important; table-layout: fixed !important; border-collapse: collapse !important; }
-          th, td { border: 0.5pt solid #e2e8f0 !important; overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; }
-          .print\\:truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-          @page { size: A4 landscape; margin: 1cm; }
+          /* Reset layout constraints for printing */
+          html, body, #root, .flex.h-screen { 
+            height: auto !important; 
+            overflow: visible !important; 
+            display: block !important;
+          }
+          
+          /* Hide non-essential elements */
+          nav, aside, button, .print\\:hidden, .fixed, .absolute { 
+            display: none !important; 
+          }
+          
+          /* Main content area reset */
+          main { 
+            padding: 0 !important; 
+            margin: 0 !important; 
+            overflow: visible !important; 
+            width: 100% !important; 
+            position: static !important;
+            display: block !important;
+          }
+          
+          /* Container reset */
+          .max-w-7xl, .max-w-\\[98\\%\\] { 
+            max-width: none !important; 
+            width: 100% !important; 
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+          
+          /* Table styling for print */
+          .bg-white, .dark\\:bg-slate-900 { background: white !important; }
+          .rounded-3xl, .rounded-2xl, .shadow-sm, .shadow-lg { 
+            border-radius: 0 !important; 
+            box-shadow: none !important; 
+          }
+          
+          .overflow-hidden, .overflow-x-auto { 
+            overflow: visible !important; 
+          }
+          
+          table { 
+            width: 100% !important; 
+            table-layout: fixed !important; 
+            border-collapse: collapse !important; 
+            page-break-inside: auto;
+          }
+          
+          thead { display: table-header-group !important; }
+          
+          tr { 
+            page-break-inside: avoid !important; 
+            page-break-after: auto !important; 
+          }
+          
+          th, td { 
+            border: 0.5pt solid #e2e8f0 !important; 
+            padding: 4pt !important;
+            font-size: 8pt !important;
+            color: black !important;
+          }
+          
+          .text-blue-600 { color: #2563eb !important; }
+          .text-slate-500, .text-slate-400 { color: #64748b !important; }
+          
+          @page { 
+            size: A4 landscape; 
+            margin: 1.5cm; 
+          }
         }
       `}</style>
     </div>
