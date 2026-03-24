@@ -5,9 +5,11 @@ import {
   format, 
   startOfDay, 
   endOfDay, 
-  isWithinInterval, 
   parseISO,
-  subDays
+  subDays,
+  differenceInMinutes,
+  max,
+  min
 } from 'date-fns';
 import { 
   FileText, 
@@ -38,9 +40,15 @@ export const Reports: React.FC = () => {
   // Filter data by date range
   const reportData = chamados.filter(c => {
     const openingDate = parseISO(c.data_abertura);
-    const start = startOfDay(parseISO(dateRange.start));
-    const end = endOfDay(parseISO(dateRange.end));
-    return isWithinInterval(openingDate, { start, end });
+    const closingDate = c.data_fechamento ? parseISO(c.data_fechamento) : new Date();
+    const rangeStart = startOfDay(parseISO(dateRange.start));
+    const rangeEnd = endOfDay(parseISO(dateRange.end));
+
+    // Check if the ticket was active during the selected range
+    const overlapStart = max([openingDate, rangeStart]);
+    const overlapEnd = min([closingDate, rangeEnd]);
+
+    return overlapStart <= overlapEnd;
   });
 
   const totalTickets = reportData.length;

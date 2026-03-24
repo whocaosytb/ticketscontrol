@@ -5,7 +5,7 @@ import {
 } from 'recharts';
 import { supabase } from '../lib/supabase';
 import { Chamado } from '../types';
-import { format, subDays, startOfDay, endOfDay, isWithinInterval, startOfWeek, endOfWeek, startOfMonth, endOfMonth, differenceInHours } from 'date-fns';
+import { format, subDays, startOfDay, endOfDay, parseISO, differenceInMinutes, max, min } from 'date-fns';
 import { Clock, AlertTriangle, CheckCircle, XCircle, List } from 'lucide-react';
 import { formatVisualId, minutesToFormat } from '../lib/utils';
 
@@ -34,26 +34,21 @@ export const Dashboard: React.FC = () => {
     setLoading(false);
   };
 
-  const filteredChamados = chamados;
-
   // 1. First apply date filter
-  const dateFilteredChamados = filteredChamados.filter(c => {
+  const dateFilteredChamados = chamados.filter(c => {
     if (!dateRange.start && !dateRange.end) return true;
     
-    const openingDate = new Date(c.data_abertura);
-    const start = dateRange.start ? startOfDay(new Date(dateRange.start)) : null;
-    const end = dateRange.end ? endOfDay(new Date(dateRange.end)) : null;
+    const openingDate = parseISO(c.data_abertura);
+    const closingDate = c.data_fechamento ? parseISO(c.data_fechamento) : new Date();
+    const start = dateRange.start ? startOfDay(parseISO(dateRange.start)) : null;
+    const end = dateRange.end ? endOfDay(parseISO(dateRange.end)) : null;
 
-    if (start && end) {
-      return isWithinInterval(openingDate, { start, end });
-    }
-    if (start) {
-      return openingDate >= start;
-    }
-    if (end) {
-      return openingDate <= end;
-    }
-    return true;
+    // Determine overlap boundaries for filtering only
+    const overlapStart = start ? max([openingDate, start]) : openingDate;
+    const overlapEnd = end ? min([closingDate, end]) : closingDate;
+
+    // Check if there's an actual overlap
+    return overlapStart <= overlapEnd;
   });
 
   // 2. Apply interactive filters (Power BI style)
@@ -116,7 +111,7 @@ export const Dashboard: React.FC = () => {
   }).length;
   const slaPercentage = resolvedChamados.length > 0 ? (withinSLA / resolvedChamados.length) * 100 : 0;
 
-  // Average Time (All resolved)
+  // Average Time (All resolved in period)
   const totalMinutes = resolvedChamados.reduce((acc, c) => acc + (c.tempo_gasto || 0), 0);
   const avgMinutes = resolvedChamados.length > 0 ? totalMinutes / resolvedChamados.length : 0;
 
