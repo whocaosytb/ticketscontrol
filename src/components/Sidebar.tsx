@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, ListTodo, Settings, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, ListTodo, Settings, ShieldCheck, FileBarChart } from 'lucide-react';
 
 interface SidebarProps {
   activeTab: string;
@@ -10,6 +10,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'list', label: 'Chamados', icon: ListTodo },
+    { id: 'reports', label: 'Relatórios', icon: FileBarChart },
     { id: 'controls', label: 'Controles', icon: Settings },
   ];
 

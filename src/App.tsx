@@ -3,6 +3,7 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { Sidebar } from './components/Sidebar';
 import { Dashboard } from './components/Dashboard';
 import { TicketList } from './components/TicketList';
+import { Reports } from './components/Reports';
 import { Controls } from './components/Controls';
 import { SLAAlertPopup } from './components/SLAAlertPopup';
 import { Menu, X } from 'lucide-react';
@@ -17,6 +18,8 @@ export default function App() {
         return <Dashboard />;
       case 'list':
         return <TicketList />;
+      case 'reports':
+        return <Reports />;
       case 'controls':
         return <Controls />;
       default:
