@@ -111,49 +111,49 @@ export const Reports: React.FC = () => {
         </div>
 
         {/* Detailed Table */}
-        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden print:shadow-none print:border-slate-300">
-          <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white">Detalhamento dos Chamados</h3>
-            <span className="text-xs font-black text-slate-400 uppercase tracking-widest">{totalTickets} registros</span>
+        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden print:shadow-none print:border-slate-300 print:rounded-none">
+          <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center print:p-2 print:mb-4">
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white print:text-sm">Detalhamento dos Chamados</h3>
+            <span className="text-xs font-black text-slate-400 uppercase tracking-widest print:text-[10px]">{totalTickets} registros</span>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+          <div className="overflow-x-auto print:overflow-visible">
+            <table className="w-full text-left border-collapse print:table-fixed">
               <thead>
-                <tr className="bg-slate-50 dark:bg-slate-800/50">
-                  <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">ID</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Título</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Setor</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Status</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Abertura</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Fechamento</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Tempo</th>
+                <tr className="bg-slate-50 dark:bg-slate-800/50 print:bg-slate-100">
+                  <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest print:px-2 print:py-2 print:w-[8%]">ID</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest print:px-2 print:py-2 print:w-[32%]">Título / Tipo</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest print:px-2 print:py-2 print:w-[15%]">Setor</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest print:px-2 print:py-2 print:w-[12%]">Status</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest print:px-2 print:py-2 print:w-[11%]">Abertura</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest print:px-2 print:py-2 print:w-[11%]">Fechamento</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest print:px-2 print:py-2 print:w-[11%]">Tempo</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800 print:divide-slate-300">
                 {reportData.map((c) => {
                   return (
                     <tr key={c.uuid} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
-                      <td className="px-6 py-4 font-mono text-xs font-bold text-blue-600">{formatVisualId(c.id_visual)}</td>
-                      <td className="px-6 py-4">
-                        <div className="flex flex-col">
-                          <span className="text-sm font-bold text-slate-900 dark:text-white truncate max-w-[200px]">{c.titulo}</span>
-                          <span className="text-[10px] text-slate-400 font-medium">{c.tipo}</span>
+                      <td className="px-6 py-4 font-mono text-xs font-bold text-blue-600 print:px-2 print:py-1.5 print:text-[9px]">{formatVisualId(c.id_visual)}</td>
+                      <td className="px-6 py-4 print:px-2 print:py-1.5">
+                        <div className="flex flex-col print:flex-row print:items-center print:gap-2">
+                          <span className="text-sm font-bold text-slate-900 dark:text-white truncate max-w-[200px] print:text-[10px] print:max-w-none print:truncate">{c.titulo}</span>
+                          <span className="text-[10px] text-slate-400 font-medium print:text-[8px] print:before:content-['('] print:after:content-[')']">{c.tipo}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-xs font-semibold text-slate-600 dark:text-slate-400">{(c as any).setores?.nome}</td>
-                      <td className="px-6 py-4">
-                        <span className={`text-[10px] px-2 py-1 rounded-lg font-black uppercase ${
+                      <td className="px-6 py-4 text-xs font-semibold text-slate-600 dark:text-slate-400 print:px-2 print:py-1.5 print:text-[9px] print:truncate">{(c as any).setores?.nome}</td>
+                      <td className="px-6 py-4 print:px-2 print:py-1.5">
+                        <span className={`text-[10px] px-2 py-1 rounded-lg font-black uppercase print:text-[8px] print:px-1.5 print:py-0.5 ${
                           c.status === 'Resolvido' || c.status === 'Fechado' ? 'bg-emerald-100 text-emerald-700' :
                           c.status === 'Aberto' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'
                         }`}>
                           {c.status}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-xs text-slate-500">{format(parseISO(c.data_abertura), 'dd/MM/yy')}</td>
-                      <td className="px-6 py-4 text-xs text-slate-500">
+                      <td className="px-6 py-4 text-xs text-slate-500 print:px-2 print:py-1.5 print:text-[9px] whitespace-nowrap">{format(parseISO(c.data_abertura), 'dd/MM/yy')}</td>
+                      <td className="px-6 py-4 text-xs text-slate-500 print:px-2 print:py-1.5 print:text-[9px] whitespace-nowrap">
                         {c.data_fechamento ? format(parseISO(c.data_fechamento), 'dd/MM/yy') : '-'}
                       </td>
-                      <td className="px-6 py-4 text-xs font-bold text-slate-700 dark:text-slate-300">{minutesToFormat(c.tempo_gasto)}</td>
+                      <td className="px-6 py-4 text-xs font-bold text-slate-700 dark:text-slate-300 print:px-2 print:py-1.5 print:text-[9px] whitespace-nowrap">{minutesToFormat(c.tempo_gasto)}</td>
                     </tr>
                   );
                 })}
@@ -166,16 +166,16 @@ export const Reports: React.FC = () => {
       {/* Print Styles */}
       <style>{`
         @media print {
-          body { background: white !important; }
+          body { background: white !important; color: black !important; }
           nav, aside, button, .print\\:hidden { display: none !important; }
-          main { padding: 0 !important; margin: 0 !important; overflow: visible !important; }
-          .max-w-7xl { max-width: none !important; }
+          main { padding: 0 !important; margin: 0 !important; overflow: visible !important; width: 100% !important; }
+          .max-w-7xl { max-width: none !important; width: 100% !important; }
           .rounded-3xl, .rounded-2xl { border-radius: 0 !important; }
           .shadow-sm, .shadow-lg { box-shadow: none !important; }
-          table { page-break-inside: auto; }
-          tr { page-break-inside: avoid; page-break-after: auto; }
-          thead { display: table-header-group; }
-          @page { margin: 1.5cm; }
+          table { width: 100% !important; table-layout: fixed !important; border-collapse: collapse !important; }
+          th, td { border: 0.5pt solid #e2e8f0 !important; overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; }
+          .print\\:truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+          @page { size: A4 landscape; margin: 1cm; }
         }
       `}</style>
     </div>
