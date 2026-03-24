@@ -45,6 +45,22 @@ export const Reports: React.FC = () => {
 
   const totalTickets = reportData.length;
 
+  // Summary by sector for the footer (Print only)
+  const sectorSummary = reportData.reduce((acc, c) => {
+    const sectorName = (c as any).setores?.nome || 'Sem Setor';
+    if (!acc[sectorName]) {
+      acc[sectorName] = { count: 0, time: 0 };
+    }
+    acc[sectorName].count += 1;
+    acc[sectorName].time += c.tempo_gasto || 0;
+    return acc;
+  }, {} as Record<string, { count: number, time: number }>);
+
+  const summaryEntries = (Object.entries(sectorSummary) as [string, { count: number, time: number }][])
+    .sort((a, b) => b[1].count - a[1].count);
+  const totalSummaryTickets = summaryEntries.reduce((sum, [_, data]) => sum + data.count, 0);
+  const totalSummaryTime = summaryEntries.reduce((sum, [_, data]) => sum + data.time, 0);
+
   const handlePrint = () => {
     window.print();
   };
@@ -160,6 +176,38 @@ export const Reports: React.FC = () => {
               </tbody>
             </table>
           </div>
+        </div>
+
+        {/* Summary Table - Only visible on Print */}
+        <div className="hidden print:block mt-12">
+          <div className="p-4 border-b-2 border-slate-900 mb-4">
+            <h3 className="text-lg font-black text-slate-900 uppercase tracking-tighter">Resumo por Setor</h3>
+          </div>
+          <table className="w-full border-collapse print:table-fixed">
+            <thead>
+              <tr className="bg-slate-100">
+                <th className="px-4 py-2 text-left text-[10px] font-black uppercase tracking-widest border border-slate-300 w-[50%]">Setor</th>
+                <th className="px-4 py-2 text-center text-[10px] font-black uppercase tracking-widest border border-slate-300 w-[25%]">Total Chamados</th>
+                <th className="px-4 py-2 text-center text-[10px] font-black uppercase tracking-widest border border-slate-300 w-[25%]">Total Horas</th>
+              </tr>
+            </thead>
+            <tbody>
+              {summaryEntries.map(([name, data]) => (
+                <tr key={name}>
+                  <td className="px-4 py-2 text-xs font-bold border border-slate-300">{name}</td>
+                  <td className="px-4 py-2 text-xs text-center border border-slate-300">{data.count}</td>
+                  <td className="px-4 py-2 text-xs text-center border border-slate-300">{minutesToFormat(data.time)}</td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr className="bg-slate-50 font-black">
+                <td className="px-4 py-2 text-xs uppercase border border-slate-300">Total Geral</td>
+                <td className="px-4 py-2 text-xs text-center border border-slate-300">{totalSummaryTickets}</td>
+                <td className="px-4 py-2 text-xs text-center border border-slate-300">{minutesToFormat(totalSummaryTime)}</td>
+              </tr>
+            </tfoot>
+          </table>
         </div>
       </div>
 
