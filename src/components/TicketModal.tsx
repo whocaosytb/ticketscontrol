@@ -217,11 +217,33 @@ export const TicketModal: React.FC<TicketModalProps> = ({ ticket, isOpen, onClos
       alert('Erro ao salvar: ' + error.message);
     } else {
       const savedTicket = data as Chamado;
+      
+      // Trigger Email Events
+      const triggerEmail = async (eventType: 'abertura' | 'status' | 'fechamento') => {
+        try {
+          await fetch('/api/email/send-event', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ticketId: savedTicket.uuid, eventType })
+          });
+        } catch (e) {
+          console.error('Erro ao disparar e-mail:', e);
+        }
+      };
+
       if (isNew) {
         await addObservation(savedTicket.uuid, 'sistema', 'Chamado aberto no sistema.');
+        triggerEmail('abertura');
       } else {
         if (ticket.status !== formData.status) {
           await addObservation(savedTicket.uuid, 'alteração_status', `Status alterado de ${ticket.status} para ${formData.status}`);
+          triggerEmail('status');
+          
+          const isClosing = (formData.status === 'Resolvido' || formData.status === 'Fechado' || formData.status === 'Cancelado') && 
+                          (ticket.status !== 'Resolvido' && ticket.status !== 'Fechado' && ticket.status !== 'Cancelado');
+          if (isClosing) {
+            triggerEmail('fechamento');
+          }
         }
         if (ticket.previsao !== payload.previsao) {
           await addObservation(savedTicket.uuid, 'alteração_prazo', `Previsão alterada para ${payload.previsao ? format(new Date(payload.previsao), 'dd/MM/yy') : 'Nenhuma'}`);
