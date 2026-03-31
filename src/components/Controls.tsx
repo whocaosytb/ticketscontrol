@@ -68,11 +68,18 @@ export const Controls: React.FC = () => {
 
   const handleSaveConfig = async () => {
     setSavingConfig(true);
+    
+    // Garantir que o email_destino seja igual ao de envio se a opção estiver marcada
+    const configToSave = {
+      ...emailConfig,
+      email_destino: emailConfig.usar_mesmo_email ? emailConfig.email_envio : emailConfig.email_destino
+    };
+
     const { error } = await supabase
       .from('config_email')
       .upsert({
         id: '00000000-0000-0000-0000-000000000000',
-        ...emailConfig,
+        ...configToSave,
         updated_at: new Date().toISOString()
       });
 
@@ -315,7 +322,14 @@ export const Controls: React.FC = () => {
                       type="checkbox" 
                       className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500/20"
                       checked={emailConfig.usar_mesmo_email}
-                      onChange={(e) => setEmailConfig(prev => ({ ...prev, usar_mesmo_email: e.target.checked }))}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setEmailConfig(prev => ({ 
+                          ...prev, 
+                          usar_mesmo_email: checked,
+                          email_destino: checked ? prev.email_envio : prev.email_destino
+                        }));
+                      }}
                     />
                     <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest group-hover:text-blue-600 transition-colors">Usar o mesmo de envio</span>
                   </label>
