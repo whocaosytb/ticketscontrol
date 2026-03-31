@@ -13,6 +13,7 @@ if (rawKey.length < 32) {
 }
 
 export const ENCRYPTION_KEY = rawKey;
+console.log(`Chave de criptografia carregada: ${ENCRYPTION_KEY.length} caracteres.`);
 const IV_LENGTH = 16;
 
 export function encrypt(text: string) {

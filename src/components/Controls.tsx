@@ -82,6 +82,20 @@ export const Controls: React.FC = () => {
         body: JSON.stringify(configToSave)
       });
 
+      if (!response.ok) {
+        let errorMessage = `Erro ${response.status}: ${response.statusText}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorMessage;
+        } catch (e) {
+          const textError = await response.text().catch(() => '');
+          if (textError && textError.length < 200) {
+            errorMessage += ` - ${textError}`;
+          }
+        }
+        throw new Error(errorMessage);
+      }
+
       const result = await response.json();
       if (result.success) {
         alert('Configuração salva com sucesso!');

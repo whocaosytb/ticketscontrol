@@ -34,10 +34,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         pass: senha,
       },
       tls: {
-        rejectUnauthorized: false
+        rejectUnauthorized: false,
+        minVersion: 'TLSv1.2'
       },
-      // Configurações mais genéricas para aumentar compatibilidade
-      connectionTimeout: 10000, // 10 segundos
+      authMethod: 'LOGIN',
+      name: email_envio.split('@')[1] || 'localhost',
+      debug: true,
+      logger: true,
+      connectionTimeout: 10000,
       greetingTimeout: 10000,
       socketTimeout: 15000
     });
@@ -63,13 +67,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   } catch (error: any) {
     console.error("Erro detalhado no SMTP (Vercel):", error);
     let friendlyMessage = error.message || "Erro desconhecido no servidor";
+    
     if (error.responseCode === 535) {
-      friendlyMessage = "Usuário ou senha incorretos (Erro 535).";
+      friendlyMessage = "Usuário ou senha incorretos (Erro 535). Verifique se o e-mail completo está correto e se a senha não possui caracteres especiais incompatíveis.";
     } else if (error.code === 'ETIMEDOUT') {
       friendlyMessage = "Tempo de conexão esgotado. Verifique o host e a porta.";
     } else if (error.code === 'ECONNREFUSED') {
       friendlyMessage = "Conexão recusada pelo servidor SMTP.";
+    } else if (error.response) {
+      friendlyMessage = `Erro do servidor SMTP: ${error.response}`;
+    } else if (error.code) {
+      friendlyMessage = `Erro de conexão (${error.code}): ${error.message}`;
     }
+    
     return res.status(500).json({ success: false, message: friendlyMessage });
   }
 }

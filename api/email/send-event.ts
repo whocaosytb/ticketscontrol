@@ -87,6 +87,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         rejectUnauthorized: false,
         minVersion: 'TLSv1.2'
       },
+      authMethod: 'LOGIN',
+      name: config.email_envio.split('@')[1] || 'localhost',
+      debug: true,
+      logger: true,
       connectionTimeout: 10000,
       greetingTimeout: 10000,
       socketTimeout: 15000
@@ -105,6 +109,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.json({ success: true, message: "E-mail enviado com sucesso!" });
   } catch (error: any) {
     console.error("Erro ao enviar e-mail de evento (Vercel):", error);
-    return res.status(500).json({ success: false, message: error.message || "Erro interno ao enviar e-mail." });
+    let friendlyMessage = error.message || "Erro interno ao enviar e-mail.";
+    
+    if (error.responseCode === 535) {
+      friendlyMessage = "Erro 535: Falha na autenticação SMTP. Verifique usuário e senha.";
+    } else if (error.code === 'ETIMEDOUT') {
+      friendlyMessage = "Timeout na conexão com o servidor SMTP.";
+    } else if (error.code === 'ECONNREFUSED') {
+      friendlyMessage = "Conexão SMTP recusada.";
+    } else if (error.response) {
+      friendlyMessage = `Erro SMTP: ${error.response}`;
+    }
+    
+    return res.status(500).json({ success: false, message: friendlyMessage });
   }
 }
