@@ -55,7 +55,7 @@ export const Controls: React.FC = () => {
         seguranca: data.seguranca || 'TLS',
         porta: data.porta || 587,
         email_envio: data.email_envio || '',
-        senha: data.senha || '',
+        senha: data.senha ? '********' : '', // Mascarar a senha carregada
         email_destino: data.email_destino || '',
         usar_mesmo_email: data.usar_mesmo_email || false,
         titulo_template: data.titulo_template || '',
@@ -75,17 +75,28 @@ export const Controls: React.FC = () => {
       email_destino: emailConfig.usar_mesmo_email ? emailConfig.email_envio : emailConfig.email_destino
     };
 
-    const { error } = await supabase
-      .from('config_email')
-      .upsert({
-        id: '00000000-0000-0000-0000-000000000000',
-        ...configToSave,
-        updated_at: new Date().toISOString()
+    try {
+      const response = await fetch('/api/config/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(configToSave)
       });
 
-    if (error) alert('Erro ao salvar configuração: ' + error.message);
-    else alert('Configuração salva com sucesso!');
-    setSavingConfig(false);
+      const result = await response.json();
+      if (result.success) {
+        alert('Configuração salva com sucesso!');
+        // Se salvou uma nova senha, volta a mostrar a máscara
+        if (emailConfig.senha !== '********') {
+          setEmailConfig(prev => ({ ...prev, senha: '********' }));
+        }
+      } else {
+        throw new Error(result.message);
+      }
+    } catch (error: any) {
+      alert('Erro ao salvar configuração: ' + error.message);
+    } finally {
+      setSavingConfig(false);
+    }
   };
 
   const handleTestEmail = async () => {

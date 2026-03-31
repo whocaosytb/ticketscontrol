@@ -4,9 +4,39 @@ import path from "path";
 import { fileURLToPath } from "url";
 import nodemailer from "nodemailer";
 import { createClient } from "@supabase/supabase-js";
+import crypto from "crypto";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Chave de criptografia (Deve ter 32 caracteres)
+const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || "solubyte-secret-key-32-chars-!!!"; 
+const IV_LENGTH = 16;
+
+function encrypt(text: string) {
+  if (!text) return text;
+  const iv = crypto.randomBytes(IV_LENGTH);
+  const cipher = crypto.createCipheriv('aes-256-cbc', Buffer.from(ENCRYPTION_KEY), iv);
+  let encrypted = cipher.update(text);
+  encrypted = Buffer.concat([encrypted, cipher.final()]);
+  return iv.toString('hex') + ':' + encrypted.toString('hex');
+}
+
+function decrypt(text: string) {
+  if (!text || !text.includes(':')) return text;
+  try {
+    const textParts = text.split(':');
+    const iv = Buffer.from(textParts.shift()!, 'hex');
+    const encryptedText = Buffer.from(textParts.join(':'), 'hex');
+    const decipher = crypto.createDecipheriv('aes-256-cbc', Buffer.from(ENCRYPTION_KEY), iv);
+    let decrypted = decipher.update(encryptedText);
+    decrypted = Buffer.concat([decrypted, decipher.final()]);
+    return decrypted.toString();
+  } catch (error) {
+    console.error("Erro ao descriptografar:", error);
+    return text;
+  }
+}
 
 const supabaseUrl = 'https://fmhfoneisisggubgbvtp.supabase.co';
 const supabaseKey = 'sb_publishable_KUJWYmBtooMeEMFYe8Eo7w_LcO8VRPf';
@@ -21,8 +51,14 @@ async function startServer() {
   // API Routes
   app.post("/api/email/test", async (req, res) => {
     console.log("Recebendo pedido de teste de e-mail:", req.body);
-    const { host, porta, seguranca, email_envio, senha, email_destino, usar_mesmo_email } = req.body;
+    let { host, porta, seguranca, email_envio, senha, email_destino, usar_mesmo_email } = req.body;
     
+    // Se a senha vier mascarada do front, tentamos buscar a real no banco
+    if (senha === "********") {
+      const { data } = await supabase.from('config_email').select('senha').single();
+      senha = decrypt(data?.senha);
+    }
+
     const recipient = usar_mesmo_email ? email_envio : email_destino;
 
     try {
@@ -79,6 +115,33 @@ async function startServer() {
     }
   });
 
+  app.post("/api/config/save", async (req, res) => {
+    const config = req.body;
+    
+    try {
+      // Criptografar a senha antes de salvar se ela não for a máscara
+      if (config.senha && config.senha !== "********") {
+        config.senha = encrypt(config.senha);
+      } else if (config.senha === "********") {
+        // Se for a máscara, removemos do objeto para não sobrescrever com asteriscos
+        delete config.senha;
+      }
+
+      const { error } = await supabase
+        .from('config_email')
+        .upsert({
+          id: '00000000-0000-0000-0000-000000000000',
+          ...config,
+          updated_at: new Date().toISOString()
+        });
+
+      if (error) throw error;
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  });
+
   app.post("/api/email/send-event", async (req, res) => {
     const { ticketId, eventType } = req.body;
 
@@ -93,7 +156,8 @@ async function startServer() {
         return res.status(404).json({ success: false, message: "Configuração de e-mail não encontrada." });
       }
 
-      // 2. Check Triggers
+      // Descriptografar a senha para uso interno
+      config.senha = decrypt(config.senha);
       const triggers = config.gatilhos || [];
       const eventMap: Record<string, string> = {
         'abertura': 'Ao abrir chamado',
