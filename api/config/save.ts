@@ -2,13 +2,13 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { supabase, encrypt } from "../_shared";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ message: 'Method Not Allowed' });
-  }
-
-  const config = req.body;
-  
   try {
+    if (req.method !== 'POST') {
+      return res.status(405).json({ message: 'Method Not Allowed' });
+    }
+
+    const config = req.body;
+    
     // Criptografar a senha antes de salvar se ela não for a máscara
     if (config.senha && config.senha !== "********") {
       config.senha = encrypt(config.senha);
@@ -26,9 +26,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
 
     if (error) throw error;
-    res.json({ success: true });
+    return res.json({ success: true });
   } catch (error: any) {
     console.error("Erro ao salvar config (Vercel):", error);
-    res.status(500).json({ success: false, message: error.message });
+    return res.status(500).json({ success: false, message: error.message || "Erro interno ao salvar configuração." });
   }
 }

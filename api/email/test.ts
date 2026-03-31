@@ -3,21 +3,28 @@ import nodemailer from "nodemailer";
 import { supabase, decrypt } from "../_shared";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ message: 'Method Not Allowed' });
-  }
-
-  console.log("Recebendo pedido de teste de e-mail (Vercel):", req.body);
-  let { host, porta, seguranca, email_envio, senha, email_destino, usar_mesmo_email } = req.body;
-  
-  if (senha === "********") {
-    const { data } = await supabase.from('config_email').select('senha').single();
-    senha = decrypt(data?.senha);
-  }
-
-  const recipient = usar_mesmo_email ? email_envio : email_destino;
-
   try {
+    if (req.method !== 'POST') {
+      return res.status(405).json({ message: 'Method Not Allowed' });
+    }
+
+    console.log("Recebendo pedido de teste de e-mail (Vercel):", req.body);
+    let { host, porta, seguranca, email_envio, senha, email_destino, usar_mesmo_email } = req.body;
+    
+    if (senha === "********") {
+      const { data, error: fetchError } = await supabase.from('config_email').select('senha').single();
+      if (fetchError || !data) {
+        throw new Error("Não foi possível carregar a senha do banco de dados. Salve as configurações novamente.");
+      }
+      senha = decrypt(data.senha);
+    }
+
+    if (!senha) {
+      throw new Error("Senha não fornecida ou não encontrada.");
+    }
+
+    const recipient = usar_mesmo_email ? email_envio : email_destino;
+
     const transporter = nodemailer.createTransport({
       host,
       port: porta,
@@ -29,11 +36,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       tls: {
         rejectUnauthorized: false
       },
-      authMethod: 'LOGIN',
-      name: 'solubyte.com.br'
+      // Configurações mais genéricas para aumentar compatibilidade
+      connectionTimeout: 10000, // 10 segundos
+      greetingTimeout: 10000,
+      socketTimeout: 15000
     });
 
-    await transporter.verify();
+    console.log(`Tentando enviar e-mail de teste para: ${recipient}`);
     
     await transporter.sendMail({
       from: `"${email_envio.split('@')[0]}" <${email_envio}>`,
@@ -50,13 +59,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       `,
     });
     
-    res.json({ success: true, message: "E-mail de teste enviado com sucesso!" });
+    return res.json({ success: true, message: "E-mail de teste enviado com sucesso!" });
   } catch (error: any) {
     console.error("Erro detalhado no SMTP (Vercel):", error);
-    let friendlyMessage = error.message;
+    let friendlyMessage = error.message || "Erro desconhecido no servidor";
     if (error.responseCode === 535) {
       friendlyMessage = "Usuário ou senha incorretos (Erro 535).";
+    } else if (error.code === 'ETIMEDOUT') {
+      friendlyMessage = "Tempo de conexão esgotado. Verifique o host e a porta.";
+    } else if (error.code === 'ECONNREFUSED') {
+      friendlyMessage = "Conexão recusada pelo servidor SMTP.";
     }
-    res.status(500).json({ success: false, message: friendlyMessage });
+    return res.status(500).json({ success: false, message: friendlyMessage });
   }
 }

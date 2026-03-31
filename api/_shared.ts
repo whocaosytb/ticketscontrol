@@ -2,7 +2,17 @@ import { createClient } from "@supabase/supabase-js";
 import crypto from "crypto";
 
 // Chave de criptografia (Deve ter 32 caracteres)
-export const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || "solubyte-secret-key-32-chars-!!!"; 
+const DEFAULT_KEY = "solubyte-secret-key-32-chars-!!!";
+let rawKey = process.env.ENCRYPTION_KEY || DEFAULT_KEY;
+
+// Garantir que a chave tenha exatamente 32 caracteres para o AES-256
+if (rawKey.length < 32) {
+  rawKey = rawKey.padEnd(32, '0');
+} else if (rawKey.length > 32) {
+  rawKey = rawKey.substring(0, 32);
+}
+
+export const ENCRYPTION_KEY = rawKey;
 const IV_LENGTH = 16;
 
 export function encrypt(text: string) {

@@ -3,13 +3,13 @@ import nodemailer from "nodemailer";
 import { supabase, decrypt } from "../_shared";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ message: 'Method Not Allowed' });
-  }
-
-  const { ticketId, eventType } = req.body;
-
   try {
+    if (req.method !== 'POST') {
+      return res.status(405).json({ message: 'Method Not Allowed' });
+    }
+
+    const { ticketId, eventType } = req.body;
+
     // 1. Fetch Config
     const { data: config, error: configError } = await supabase
       .from('config_email')
@@ -22,6 +22,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Descriptografar a senha para uso interno
     config.senha = decrypt(config.senha);
+    if (!config.senha) {
+      return res.status(500).json({ success: false, message: "Erro ao descriptografar a senha do e-mail." });
+    }
+
     const triggers = config.gatilhos || [];
     const eventMap: Record<string, string> = {
       'abertura': 'Ao abrir chamado',
@@ -83,7 +87,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         rejectUnauthorized: false,
         minVersion: 'TLSv1.2'
       },
-      authMethod: 'LOGIN'
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 15000
     });
 
     console.log("Tentando enviar e-mail de evento para (Vercel):", recipient);
@@ -96,9 +102,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
     console.log("E-mail de evento enviado com sucesso! (Vercel)");
 
-    res.json({ success: true, message: "E-mail enviado com sucesso!" });
+    return res.json({ success: true, message: "E-mail enviado com sucesso!" });
   } catch (error: any) {
     console.error("Erro ao enviar e-mail de evento (Vercel):", error);
-    res.status(500).json({ success: false, message: error.message });
+    return res.status(500).json({ success: false, message: error.message || "Erro interno ao enviar e-mail." });
   }
 }

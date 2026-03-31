@@ -110,8 +110,18 @@ export const Controls: React.FC = () => {
       });
       
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'Erro desconhecido no servidor' }));
-        setTestResult({ success: false, message: errorData.message || `Erro ${response.status}: ${response.statusText}` });
+        let errorMessage = `Erro ${response.status}: ${response.statusText}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorMessage;
+        } catch (e) {
+          // Se não for JSON, tenta ler como texto
+          const textError = await response.text().catch(() => '');
+          if (textError && textError.length < 200) {
+            errorMessage += ` - ${textError}`;
+          }
+        }
+        setTestResult({ success: false, message: errorMessage });
       } else {
         const data = await response.json();
         setTestResult(data);
