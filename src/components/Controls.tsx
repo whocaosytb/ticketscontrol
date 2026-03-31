@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { Setor } from '../types';
 import { useTheme } from '../contexts/ThemeContext';
-import { Plus, Trash2, Moon, Sun, Settings, LayoutGrid, Mail, Server, Lock, Variable, Send, Save, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { Plus, Trash2, Moon, Sun, Settings, LayoutGrid, Mail, Server, Lock, Variable, Send, Save, CheckCircle2, AlertCircle, Loader2, Eye } from 'lucide-react';
 
 export const Controls: React.FC = () => {
   const [setores, setSetores] = useState<Setor[]>([]);
@@ -25,6 +25,7 @@ export const Controls: React.FC = () => {
   const [loadingConfig, setLoadingConfig] = useState(true);
   const [savingConfig, setSavingConfig] = useState(false);
   const [testingEmail, setTestingEmail] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
 
   const bodyRef = useRef<HTMLTextAreaElement>(null);
@@ -69,11 +70,11 @@ export const Controls: React.FC = () => {
     setSavingConfig(true);
     const { error } = await supabase
       .from('config_email')
-      .update({
+      .upsert({
+        id: '00000000-0000-0000-0000-000000000000',
         ...emailConfig,
         updated_at: new Date().toISOString()
-      })
-      .eq('id', '00000000-0000-0000-0000-000000000000');
+      });
 
     if (error) alert('Erro ao salvar configuração: ' + error.message);
     else alert('Configuração salva com sucesso!');
@@ -89,10 +90,17 @@ export const Controls: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(emailConfig)
       });
-      const data = await response.json();
-      setTestResult(data);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Erro desconhecido no servidor' }));
+        setTestResult({ success: false, message: errorData.message || `Erro ${response.status}: ${response.statusText}` });
+      } else {
+        const data = await response.json();
+        setTestResult(data);
+      }
     } catch (error: any) {
-      setTestResult({ success: false, message: 'Erro de conexão com o servidor.' });
+      console.error('Erro no fetch de teste:', error);
+      setTestResult({ success: false, message: `Erro de conexão: ${error.message || 'Verifique se o servidor está rodando.'}` });
     }
     setTestingEmail(false);
   };
@@ -276,13 +284,27 @@ export const Controls: React.FC = () => {
                 <div className="relative">
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                   <input 
-                    type="password" 
+                    type={showPassword ? "text" : "password"} 
                     placeholder="••••••••••••"
-                    className="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500/20 dark:text-white font-bold text-sm"
+                    className="w-full pl-12 pr-12 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-blue-500/20 dark:text-white font-bold text-sm"
                     value={emailConfig.senha}
                     onChange={(e) => setEmailConfig(prev => ({ ...prev, senha: e.target.value }))}
                   />
+                  <button
+                    type="button"
+                    onMouseDown={() => setShowPassword(true)}
+                    onMouseUp={() => setShowPassword(false)}
+                    onMouseLeave={() => setShowPassword(false)}
+                    onTouchStart={() => setShowPassword(true)}
+                    onTouchEnd={() => setShowPassword(false)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-500 transition-colors cursor-pointer select-none"
+                  >
+                    <Eye size={18} />
+                  </button>
                 </div>
+                <p className="text-[9px] text-slate-500 font-medium px-1">
+                  Para Outlook/Gmail com 2FA, use uma <span className="font-bold">Senha de Aplicativo</span>.
+                </p>
               </div>
 
               <div className="space-y-2 md:col-span-2">
@@ -316,7 +338,6 @@ export const Controls: React.FC = () => {
                 </div>
                 <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">Gatilhos de Envio</h4>
               </div>
-              
               <div className="flex flex-wrap gap-4">
                 {['Ao abrir chamado', 'Ao editar status', 'Ao fechar'].map(gatilho => (
                   <label key={gatilho} className="flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl cursor-pointer hover:border-blue-500 transition-all group">

@@ -40,6 +40,34 @@ CREATE TABLE observacoes (
     data_criacao TIMESTAMP WITH TIME ZONE DEFAULT (now() AT TIME ZONE 'utc')
 );
 
+-- Tabela de Configuração de E-mail
+CREATE TABLE config_email (
+    id UUID PRIMARY KEY DEFAULT '00000000-0000-0000-0000-000000000000',
+    host TEXT,
+    seguranca TEXT DEFAULT 'TLS',
+    porta INTEGER DEFAULT 587,
+    email_envio TEXT,
+    senha TEXT,
+    email_destino TEXT,
+    usar_mesmo_email BOOLEAN DEFAULT false,
+    titulo_template TEXT,
+    corpo_template TEXT,
+    gatilhos TEXT[],
+    -- IMAP Config
+    imap_host TEXT,
+    imap_porta INTEGER DEFAULT 993,
+    imap_seguranca TEXT DEFAULT 'SSL',
+    imap_usar_mesmo_login BOOLEAN DEFAULT true,
+    imap_usuario TEXT,
+    imap_senha TEXT,
+    imap_ativo BOOLEAN DEFAULT false,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT (now() AT TIME ZONE 'utc')
+);
+
+-- Inserir registro inicial de configuração
+INSERT INTO config_email (id) VALUES ('00000000-0000-0000-0000-000000000000')
+ON CONFLICT (id) DO NOTHING;
+
 -- Inserir alguns setores iniciais (opcional)
 INSERT INTO setores (nome) VALUES ('TI'), ('RH'), ('Financeiro'), ('Operações');
 

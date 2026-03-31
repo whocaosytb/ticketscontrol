@@ -20,11 +20,14 @@ async function startServer() {
 
   // API Routes
   app.post("/api/email/test", async (req, res) => {
+    console.log("Recebendo pedido de teste de e-mail:", req.body);
     const { host, porta, seguranca, email_envio, senha, email_destino, usar_mesmo_email } = req.body;
     
     const recipient = usar_mesmo_email ? email_envio : email_destino;
 
     try {
+      console.log(`Iniciando transporte SMTP para ${host}:${porta} (${seguranca})`);
+      
       const transporter = nodemailer.createTransport({
         host,
         port: porta,
@@ -33,20 +36,46 @@ async function startServer() {
           user: email_envio,
           pass: senha,
         },
+        tls: {
+          rejectUnauthorized: false
+        },
+        authMethod: 'LOGIN', // Força o uso do método LOGIN (comum em HostGator)
+        name: 'solubyte.com.br', // Identificador do cliente para o EHLO
+        debug: true,
+        logger: true
       });
 
+      console.log("Verificando conexão com o servidor SMTP (Forçando LOGIN)...");
+      await transporter.verify();
+      
+      console.log("Conexão verificada. Tentando enviar e-mail de teste para:", recipient);
+      
       await transporter.sendMail({
-        from: email_envio,
+        from: `"${email_envio.split('@')[0]}" <${email_envio}>`,
         to: recipient,
         subject: "Teste de Configuração de E-mail",
         text: "Este é um e-mail de teste para validar as configurações do sistema de chamados.",
-        html: "<p>Este é um e-mail de teste para validar as configurações do sistema de chamados.</p>",
+        html: `
+          <div style="font-family: sans-serif; padding: 20px; color: #333;">
+            <h2 style="color: #2563eb;">Teste de Configuração</h2>
+            <p>Este é um e-mail de teste para validar as configurações do sistema de chamados.</p>
+            <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
+            <p style="font-size: 12px; color: #666;">Enviado via SMTP: ${host}</p>
+          </div>
+        `,
       });
-
+      
+      console.log("E-mail de teste enviado com sucesso!");
       res.json({ success: true, message: "E-mail de teste enviado com sucesso!" });
     } catch (error: any) {
-      console.error("Erro no teste de e-mail:", error);
-      res.status(500).json({ success: false, message: error.message });
+      console.error("Erro detalhado no SMTP:", error);
+      
+      let friendlyMessage = error.message;
+      if (error.responseCode === 535) {
+        friendlyMessage = "Usuário ou senha incorretos (Erro 535). Verifique se o e-mail completo está correto e se a senha não possui caracteres especiais incompatíveis.";
+      }
+      
+      res.status(500).json({ success: false, message: friendlyMessage });
     }
   });
 
@@ -122,15 +151,22 @@ async function startServer() {
           user: config.email_envio,
           pass: config.senha,
         },
+        tls: {
+          rejectUnauthorized: false,
+          minVersion: 'TLSv1.2'
+        },
+        authMethod: 'LOGIN'
       });
 
+      console.log("Tentando enviar e-mail de evento para:", recipient);
       await transporter.sendMail({
-        from: config.email_envio,
+        from: `"${config.email_envio.split('@')[0]}" <${config.email_envio}>`,
         to: recipient,
         subject: title,
         text: body.replace(/<[^>]*>?/gm, ''), // Basic strip HTML for text version
         html: body.replace(/\n/g, '<br>'), // Simple newline to br for HTML
       });
+      console.log("E-mail de evento enviado com sucesso!");
 
       res.json({ success: true, message: "E-mail enviado com sucesso!" });
     } catch (error: any) {
