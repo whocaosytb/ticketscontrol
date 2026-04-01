@@ -10,6 +10,9 @@
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit"
   },
+  "engines": {
+    "node": "20.x"
+  },
   "dependencies": {
     "@google/genai": "^1.29.0",
     "@supabase/supabase-js": "^2.97.0",

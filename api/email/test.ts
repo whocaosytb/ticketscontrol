@@ -1,6 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import nodemailer from "nodemailer";
-import { supabase, decrypt } from "../_shared";
+import { supabase, decrypt } from "../_shared.js";
+
+console.log("api/email/test.ts carregado");
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {

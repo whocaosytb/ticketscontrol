@@ -1,5 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
-import crypto from "crypto";
+import * as crypto from "node:crypto";
+import { Buffer } from "node:buffer";
+
+console.log("api/_shared.ts carregado");
 
 // Chave de criptografia (Deve ter 32 caracteres)
 const DEFAULT_KEY = "solubyte-secret-key-32-chars-!!!";
@@ -13,16 +16,20 @@ if (rawKey.length < 32) {
 }
 
 export const ENCRYPTION_KEY = rawKey;
-console.log(`Chave de criptografia carregada: ${ENCRYPTION_KEY.length} caracteres.`);
 const IV_LENGTH = 16;
 
 export function encrypt(text: string) {
   if (!text) return text;
-  const iv = crypto.randomBytes(IV_LENGTH);
-  const cipher = crypto.createCipheriv('aes-256-cbc', Buffer.from(ENCRYPTION_KEY), iv);
-  let encrypted = cipher.update(text);
-  encrypted = Buffer.concat([encrypted, cipher.final()]);
-  return iv.toString('hex') + ':' + encrypted.toString('hex');
+  try {
+    const iv = crypto.randomBytes(IV_LENGTH);
+    const cipher = crypto.createCipheriv('aes-256-cbc', Buffer.from(ENCRYPTION_KEY), iv);
+    let encrypted = cipher.update(text);
+    encrypted = Buffer.concat([encrypted, cipher.final()]);
+    return iv.toString('hex') + ':' + encrypted.toString('hex');
+  } catch (error) {
+    console.error("Erro ao criptografar:", error);
+    return text;
+  }
 }
 
 export function decrypt(text: string) {
