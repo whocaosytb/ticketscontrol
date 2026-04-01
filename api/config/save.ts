@@ -8,6 +8,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const config = req.body;
+    console.log("Payload recebido para salvar:", JSON.stringify(config));
     
     // Criptografar a senha antes de salvar se ela não for a máscara
     if (config.senha && config.senha !== "********") {
@@ -17,15 +18,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       delete config.senha;
     }
 
-    const { error } = await supabase
+    const { data, error, status } = await supabase
       .from('config_email')
       .upsert({
         id: '00000000-0000-0000-0000-000000000000',
         ...config,
         updated_at: new Date().toISOString()
-      });
+      }, { onConflict: 'id' })
+      .select();
 
-    if (error) throw error;
+    if (error) {
+      console.error("Erro Supabase Upsert:", error);
+      throw error;
+    }
+    console.log("Configuração salva com sucesso. Status:", status, "Data:", data);
     return res.json({ success: true });
   } catch (error: any) {
     console.error("Erro ao salvar config (Vercel):", error);

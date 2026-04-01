@@ -8,15 +8,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(405).json({ message: 'Method Not Allowed' });
     }
 
-    console.log("Recebendo pedido de teste de e-mail (Vercel):", req.body);
+    console.log("Recebendo pedido de teste de e-mail (Vercel):", JSON.stringify(req.body));
     let { host, porta, seguranca, email_envio, senha, email_destino, usar_mesmo_email } = req.body;
     
     if (senha === "********") {
+      console.log("Buscando senha no banco de dados...");
       const { data, error: fetchError } = await supabase.from('config_email').select('senha').single();
       if (fetchError || !data) {
+        console.error("Erro ao buscar senha:", fetchError);
         throw new Error("Não foi possível carregar a senha do banco de dados. Salve as configurações novamente.");
       }
       senha = decrypt(data.senha);
+      console.log("Senha descriptografada com sucesso.");
     }
 
     if (!senha) {

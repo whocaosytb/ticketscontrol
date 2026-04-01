@@ -84,13 +84,14 @@ export const Controls: React.FC = () => {
 
       if (!response.ok) {
         let errorMessage = `Erro ${response.status}: ${response.statusText}`;
+        const bodyText = await response.text().catch(() => '');
+        
         try {
-          const errorData = await response.json();
+          const errorData = JSON.parse(bodyText);
           errorMessage = errorData.message || errorMessage;
         } catch (e) {
-          const textError = await response.text().catch(() => '');
-          if (textError && textError.length < 200) {
-            errorMessage += ` - ${textError}`;
+          if (bodyText && bodyText.length < 200) {
+            errorMessage += ` - ${bodyText}`;
           }
         }
         throw new Error(errorMessage);
@@ -125,14 +126,14 @@ export const Controls: React.FC = () => {
       
       if (!response.ok) {
         let errorMessage = `Erro ${response.status}: ${response.statusText}`;
+        const bodyText = await response.text().catch(() => '');
+        
         try {
-          const errorData = await response.json();
+          const errorData = JSON.parse(bodyText);
           errorMessage = errorData.message || errorMessage;
         } catch (e) {
-          // Se não for JSON, tenta ler como texto
-          const textError = await response.text().catch(() => '');
-          if (textError && textError.length < 200) {
-            errorMessage += ` - ${textError}`;
+          if (bodyText && bodyText.length < 200) {
+            errorMessage += ` - ${bodyText}`;
           }
         }
         setTestResult({ success: false, message: errorMessage });
