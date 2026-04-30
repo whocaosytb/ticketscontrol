@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-  PieChart, Pie, Cell, LineChart, Line
+  PieChart, Pie, Cell, LineChart, Line, ComposedChart
 } from 'recharts';
 import { supabase } from '../lib/supabase';
 import { Chamado } from '../types';
 import { format, subDays, startOfDay, endOfDay, parseISO, differenceInMinutes, max, min } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { Clock, AlertTriangle, CheckCircle, XCircle, List } from 'lucide-react';
 import { formatVisualId, minutesToFormat } from '../lib/utils';
 
@@ -20,6 +21,8 @@ export const Dashboard: React.FC = () => {
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
   const [selectedSector, setSelectedSector] = useState<string | null>(null);
   const [selectedType, setSelectedType] = useState<string | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [historyRange, setHistoryRange] = useState(30);
 
   useEffect(() => {
     fetchChamados();
@@ -34,7 +37,7 @@ export const Dashboard: React.FC = () => {
     setLoading(false);
   };
 
-  // 1. First apply date filter
+  // 1. First apply date range filter
   const dateFilteredChamados = chamados.filter(c => {
     if (!dateRange.start && !dateRange.end) return true;
     
@@ -55,26 +58,37 @@ export const Dashboard: React.FC = () => {
   const filteredForStatusChart = dateFilteredChamados.filter(c => {
     const matchesSector = !selectedSector || (c as any).setores?.nome === selectedSector;
     const matchesType = !selectedType || c.tipo === selectedType;
-    return matchesSector && matchesType;
+    const matchesDate = !selectedDate || c.data_abertura.startsWith(selectedDate);
+    return matchesSector && matchesType && matchesDate;
   });
 
   const filteredForSectorChart = dateFilteredChamados.filter(c => {
     const matchesStatus = !selectedStatus || c.status === selectedStatus;
     const matchesType = !selectedType || c.tipo === selectedType;
-    return matchesStatus && matchesType;
+    const matchesDate = !selectedDate || c.data_abertura.startsWith(selectedDate);
+    return matchesStatus && matchesType && matchesDate;
   });
 
   const filteredForTypeChart = dateFilteredChamados.filter(c => {
     const matchesStatus = !selectedStatus || c.status === selectedStatus;
     const matchesSector = !selectedSector || (c as any).setores?.nome === selectedSector;
-    return matchesStatus && matchesSector;
+    const matchesDate = !selectedDate || c.data_abertura.startsWith(selectedDate);
+    return matchesStatus && matchesSector && matchesDate;
+  });
+
+  const filteredForHistoryChart = dateFilteredChamados.filter(c => {
+    const matchesStatus = !selectedStatus || c.status === selectedStatus;
+    const matchesSector = !selectedSector || (c as any).setores?.nome === selectedSector;
+    const matchesType = !selectedType || c.tipo === selectedType;
+    return matchesStatus && matchesSector && matchesType;
   });
 
   const periodChamados = dateFilteredChamados.filter(c => {
     const matchesStatus = !selectedStatus || c.status === selectedStatus;
     const matchesSector = !selectedSector || (c as any).setores?.nome === selectedSector;
     const matchesType = !selectedType || c.tipo === selectedType;
-    return matchesStatus && matchesSector && matchesType;
+    const matchesDate = !selectedDate || c.data_abertura.startsWith(selectedDate);
+    return matchesStatus && matchesSector && matchesType && matchesDate;
   });
 
   // Stats by Status
@@ -115,13 +129,28 @@ export const Dashboard: React.FC = () => {
   const totalMinutes = resolvedChamados.reduce((acc, c) => acc + (c.tempo_gasto || 0), 0);
   const avgMinutes = resolvedChamados.length > 0 ? totalMinutes / resolvedChamados.length : 0;
 
-  // Reduced List for SLA
-  const slaList = periodChamados
-    .filter(c => c.status === 'Aberto' || c.status === 'Aguardando')
-    .sort((a, b) => new Date(a.sla_atual).getTime() - new Date(b.sla_atual).getTime())
-    .slice(0, 5);
+  // New History Data with adjustable range
+  const historyDays = Array.from({ length: historyRange }, (_, i) => {
+    const d = subDays(new Date(), (historyRange - 1) - i);
+    return format(d, 'yyyy-MM-dd');
+  });
 
-  if (loading) return <div className="p-8 text-center">Carregando métricas...</div>;
+  const historicalData = historyDays.map(dateStr => {
+    const date = parseISO(dateStr);
+    const dayChamados = filteredForHistoryChart.filter(c => c.data_abertura.startsWith(dateStr));
+    const daysMap = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SAB'];
+    return {
+      name: format(date, 'dd/MM'),
+      fullDate: dateStr,
+      day: daysMap[date.getDay()],
+      total: dayChamados.length,
+      incidente: dayChamados.filter(c => c.tipo === 'Incidente').length,
+      melhoria: dayChamados.filter(c => c.tipo === 'Melhoria').length,
+      solicitacao: dayChamados.filter(c => c.tipo === 'Solicitação').length,
+    };
+  });
+
+  if (loading) return <div className="p-8 text-center text-slate-500 font-bold">Carregando métricas...</div>;
 
   return (
     <div className="p-8 space-y-10 animate-in fade-in duration-500">
@@ -152,13 +181,14 @@ export const Dashboard: React.FC = () => {
               onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
             />
           </div>
-          {(dateRange.start || dateRange.end || selectedStatus || selectedSector || selectedType) && (
+          {(dateRange.start || dateRange.end || selectedStatus || selectedSector || selectedType || selectedDate) && (
             <button 
               onClick={() => {
                 setDateRange({ start: '', end: '' });
                 setSelectedStatus(null);
                 setSelectedSector(null);
                 setSelectedType(null);
+                setSelectedDate(null);
               }}
               className="px-4 py-2 text-xs font-black uppercase tracking-widest text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all flex items-center gap-2"
             >
@@ -290,35 +320,36 @@ export const Dashboard: React.FC = () => {
           </div>
         </ChartContainer>
 
-        {/* Sector Chart */}
+        {/* Volume por Setor */}
         <ChartContainer 
           title="Volume por Setor"
           onClear={() => setSelectedSector(null)}
           isActive={!!selectedSector}
           indicatorColor="bg-blue-600"
+          className="lg:col-span-2"
         >
-          <div style={{ height: Math.max(300, sectorData.length * 32) + 'px' }}>
+          <div className="h-[400px]">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart 
                 data={sectorData} 
-                layout="vertical"
-                margin={{ left: 20, right: 30 }}
+                margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
                 onClick={(data) => {
                   if (data && data.activeLabel) {
                     setSelectedSector(prev => prev === data.activeLabel ? null : data.activeLabel);
                   }
                 }}
               >
-                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
-                <XAxis type="number" hide />
-                <YAxis 
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                <XAxis 
                   dataKey="name" 
-                  type="category" 
-                  width={120} 
-                  tick={{ fontSize: 11, fontWeight: 700 }} 
+                  tick={{ fontSize: 10, fontWeight: 700 }} 
                   stroke="#64748b" 
+                  angle={-45}
+                  textAnchor="end"
                   interval={0}
+                  height={60}
                 />
+                <YAxis tick={{ fontSize: 11, fontWeight: 700 }} stroke="#64748b" />
                 <Tooltip 
                   contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
                   formatter={(value: number) => [value, 'Chamados']}
@@ -326,8 +357,8 @@ export const Dashboard: React.FC = () => {
                 <Bar 
                   dataKey="value" 
                   fill="#3b82f6"
-                  radius={[0, 4, 4, 0]}
-                  barSize={24}
+                  radius={[4, 4, 0, 0]}
+                  barSize={32}
                   cursor="pointer"
                 >
                   {sectorData.map((entry, index) => (
@@ -343,25 +374,140 @@ export const Dashboard: React.FC = () => {
           </div>
         </ChartContainer>
 
-        {/* SLA List */}
-        <ChartContainer title="Próximos Vencimentos SLA" indicatorColor="bg-amber-600">
-          <div className="space-y-4">
-            {slaList.map(c => (
-              <div key={c.uuid} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-700 hover:border-blue-200 dark:hover:border-blue-900 transition-colors">
-                <div className="flex flex-col">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{formatVisualId(c.id_visual)}</span>
-                  <span className="text-sm font-bold text-slate-900 dark:text-slate-100 truncate max-w-[200px]">{c.titulo}</span>
-                </div>
-                <div className="text-right">
-                  <span className={`text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full ${
-                    new Date(c.sla_atual) < new Date() ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'
-                  }`}>
-                    {format(new Date(c.sla_atual), 'dd/MM HH:mm')}
-                  </span>
-                </div>
-              </div>
-            ))}
-            {slaList.length === 0 && <p className="text-center text-slate-500 py-8 font-medium">Nenhum chamado pendente.</p>}
+        {/* History Chart */}
+        <ChartContainer 
+          title="Chamados Abertos" 
+          indicatorColor="bg-indigo-600"
+          className="lg:col-span-2"
+          onClear={() => setSelectedDate(null)}
+          isActive={!!selectedDate}
+        >
+          <div className="mb-6 flex items-center justify-between">
+            <div className="flex flex-col">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Período de Visualização</span>
+              {selectedDate && (
+                <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest mt-1 animate-pulse">
+                  Filtrado por: {format(parseISO(selectedDate), 'dd/MM/yyyy')}
+                </span>
+              )}
+            </div>
+            <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+              <select 
+                value={historyRange}
+                onChange={(e) => setHistoryRange(Number(e.target.value))}
+                className="bg-transparent border-none outline-none text-xs font-bold text-slate-700 dark:text-slate-300 px-2 cursor-pointer"
+              >
+                {Array.from({ length: 17 }, (_, i) => 10 + i * 5).map(val => (
+                  <option key={val} value={val} className="bg-slate-100 dark:bg-slate-800">{val} Dias</option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="h-[400px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart
+                data={historicalData}
+                margin={{ top: 20, right: 20, bottom: 20, left: 20 }}
+                onClick={(data) => {
+                  if (data && data.activePayload && data.activePayload.length > 0) {
+                    const dateStr = data.activePayload[0].payload.fullDate;
+                    setSelectedDate(prev => prev === dateStr ? null : dateStr);
+                  }
+                }}
+              >
+                <CartesianGrid stroke="#f1f5f9" vertical={false} />
+                <XAxis 
+                  dataKey="name" 
+                  tick={(props: any) => {
+                    const { x, y, payload } = props;
+                    const data = historicalData[payload.index];
+                    if (!data) return null;
+                    const isSelected = selectedDate === data.fullDate;
+                    return (
+                      <g transform={`translate(${x},${y})`}>
+                        <text x={0} y={0} dy={16} textAnchor="middle" fill={isSelected ? "#3b82f6" : "#94a3b8"} fontSize={10} fontWeight={isSelected ? 900 : 700}>
+                          {data.name}
+                        </text>
+                        <text x={0} y={0} dy={28} textAnchor="middle" fill={isSelected ? "#3b82f6" : "#64748b"} fontSize={9} fontWeight={isSelected ? 700 : 500} className="uppercase opacity-70">
+                          {data.day}
+                        </text>
+                      </g>
+                    );
+                  }}
+                  stroke="#94a3b8" 
+                  tickLine={false}
+                  axisLine={false}
+                  interval={historyRange > 45 ? 4 : historyRange > 20 ? 2 : 0}
+                  height={50}
+                />
+                <YAxis 
+                  tick={{ fontSize: 10, fontWeight: 600 }} 
+                  stroke="#94a3b8"
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <Tooltip 
+                  cursor={{ fill: '#f8fafc', opacity: 0.5 }}
+                  contentStyle={{ 
+                    borderRadius: '16px', 
+                    border: 'none', 
+                    boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)',
+                    padding: '12px'
+                  }}
+                />
+                <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px' }} />
+                <Bar 
+                  name="Total" 
+                  dataKey="total" 
+                  fill="#94a3b8" 
+                  radius={[4, 4, 0, 0]} 
+                  barSize={historyRange > 60 ? 6 : historyRange > 30 ? 12 : 20}
+                  opacity={0.6}
+                  cursor="pointer"
+                >
+                  {historicalData.map((entry, index) => (
+                    <Cell 
+                      key={`cell-${index}`} 
+                      fill={selectedDate === entry.fullDate ? '#3b82f6' : '#94a3b8'}
+                      fillOpacity={!selectedDate || selectedDate === entry.fullDate ? 0.6 : 0.2}
+                    />
+                  ))}
+                </Bar>
+                <Line 
+                  name="Incidente" 
+                  type="monotone" 
+                  dataKey="incidente" 
+                  stroke="#f59e0b" 
+                  strokeWidth={3} 
+                  strokeOpacity={!selectedDate ? 1 : 0.4}
+                  dot={{ r: 4, strokeWidth: 2, fill: '#fff' }}
+                  activeDot={{ r: 6, strokeWidth: 0 }}
+                  cursor="pointer"
+                />
+                <Line 
+                  name="Solicitação" 
+                  type="monotone" 
+                  dataKey="solicitacao" 
+                  stroke="#3b82f6" 
+                  strokeWidth={3} 
+                  strokeOpacity={!selectedDate ? 1 : 0.4}
+                  dot={{ r: 4, strokeWidth: 2, fill: '#fff' }}
+                  activeDot={{ r: 6, strokeWidth: 0 }}
+                  cursor="pointer"
+                />
+                <Line 
+                  name="Melhoria" 
+                  type="monotone" 
+                  dataKey="melhoria" 
+                  stroke="#10b981" 
+                  strokeWidth={3} 
+                  strokeOpacity={!selectedDate ? 1 : 0.4}
+                  dot={{ r: 4, strokeWidth: 2, fill: '#fff' }}
+                  activeDot={{ r: 6, strokeWidth: 0 }}
+                  cursor="pointer"
+                />
+              </ComposedChart>
+            </ResponsiveContainer>
           </div>
         </ChartContainer>
       </div>
@@ -401,8 +547,9 @@ const ChartContainer: React.FC<{
   onClear?: () => void; 
   isActive?: boolean;
   indicatorColor?: string;
-}> = ({ title, children, onClear, isActive, indicatorColor = "bg-blue-600" }) => (
-  <div className={`bg-white dark:bg-slate-900 p-8 rounded-3xl border transition-all ${isActive ? 'border-blue-500 ring-1 ring-blue-500/20' : 'border-slate-200 dark:border-slate-800'} shadow-sm`}>
+  className?: string; // Added className
+}> = ({ title, children, onClear, isActive, indicatorColor = "bg-blue-600", className = "" }) => (
+  <div className={`bg-white dark:bg-slate-900 p-8 rounded-3xl border transition-all ${isActive ? 'border-blue-500 ring-1 ring-blue-500/20' : 'border-slate-200 dark:border-slate-800'} shadow-sm ${className}`}>
     <div className="flex justify-between items-center mb-8">
       <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2 uppercase tracking-tight">
         <div className={`w-2 h-6 ${indicatorColor} rounded-full`} />
